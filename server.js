@@ -233,6 +233,7 @@ app.get('/api/data/live', async (req, res) => {
 
         console.log('Fetching all live data from Airtable...');
 
+        // Fetch all tables, but don't fail if individual tables error
         const [
             prompts, 
             workflows, 
@@ -243,7 +244,7 @@ app.get('/api/data/live', async (req, res) => {
             seoData,
             ideasPlans,
             documentation
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.PROMPTS),
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.WORKFLOWS),
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.ENTITIES),
@@ -253,20 +254,20 @@ app.get('/api/data/live', async (req, res) => {
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.SEO_DATA),
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.IDEAS_PLANS),
             fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.DOCUMENTATION)
-        ]);
+        ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : []));
 
         console.log(`Fetched: ${prompts.length} prompts, ${workflows.length} workflows, ${entities.length} entities`);
 
         res.json({
-            prompts,
-            workflows,
-            entities,
-            tools,
-            references,
-            contentTypes,
-            seoData,
-            ideasPlans,
-            documentation
+            prompts: prompts || [],
+            workflows: workflows || [],
+            entities: entities || [],
+            tools: tools || [],
+            references: references || [],
+            contentTypes: contentTypes || [],
+            seoData: seoData || [],
+            ideasPlans: ideasPlans || [],
+            documentation: documentation || []
         });
 
     } catch (error) {
@@ -465,6 +466,15 @@ app.get('/api/requests/recent', async (req, res) => {
 
 // --- SSE Endpoint for Real-Time Lane Progress Tracking ---
 app.get('/api/events/:recordId', (req, res) => {
+    // SSE doesn't work reliably on Vercel (stateless lambdas)
+    if (process.env.VERCEL) {
+        return res.status(501).json({ 
+            ok: false, 
+            message: 'SSE disabled on Vercel deployment. Use polling tracker instead.',
+            fallback: `/api/requests/status/${req.params.recordId}`
+        });
+    }
+    
     const { recordId } = req.params;
     
     console.log(`[SSE] Client connecting for record: ${recordId}`);
@@ -492,6 +502,14 @@ app.get('/api/events/:recordId', (req, res) => {
 
 // --- Webhook endpoint for Make.com to send lane progress events ---
 app.post('/api/events/:recordId/lane', async (req, res) => {
+    // On Vercel, accept events but don't try to emit via SSE
+    if (process.env.VERCEL) {
+        return res.json({ 
+            ok: true, 
+            message: 'Event received (SSE disabled on Vercel). Use polling tracker.' 
+        });
+    }
+    
     try {
         const { recordId } = req.params;
         const { event_type, lane, prompt, output, eval_score, error, content_type, output_id, summary } = req.body;
@@ -544,14 +562,19 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(process.env.PORT || 3001, () => {
-  const serverPort = process.env.PORT || 3001;
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`📚 Knowledge Base Web Server`);
-  console.log(`${'='.repeat(60)}`);
-  console.log(`🌐 Running at: http://localhost:${serverPort}`);
-  console.log(`📊 Airtable configured: ${!!airtable}`);
-  console.log(`🔗 Make.com configured: ${!!MAKE_WEBHOOK_URL}`);
-  console.log(`${'='.repeat(60)}\n`);
-});
+// On Vercel, export the app as a handler (no listening!)
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(process.env.PORT || 3001, () => {
+    const serverPort = process.env.PORT || 3001;
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`📚 Knowledge Base Web Server`);
+    console.log(`${'='.repeat(60)}`);
+    console.log(`🌐 Running at: http://localhost:${serverPort}`);
+    console.log(`📊 Airtable configured: ${!!airtable}`);
+    console.log(`🔗 Make.com configured: ${!!MAKE_WEBHOOK_URL}`);
+    console.log(`${'='.repeat(60)}\n`);
+  });
+}
 
