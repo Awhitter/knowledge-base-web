@@ -237,6 +237,16 @@
                     </div>
                     
                     <div style="margin-bottom: 1.5rem;">
+                        <label for="priority" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Priority</label>
+                        <select id="priority" name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Low">Low</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
                         <label for="rawInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Input / Instructions</label>
                         <textarea id="rawInput" name="rawInput" rows="6" required 
                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
@@ -488,31 +498,47 @@
         
         // --- Page Logic Functions (Updated to use liveData) ---
 
-        function loadDashboard() {
-            const stats = {
-                total: liveData.submittedRequests.length,
-                completed: liveData.submittedRequests.filter(c => c.status === 'Complete').length,
-                processing: liveData.submittedRequests.filter(c => c.status === 'Processing').length,
-                failed: liveData.submittedRequests.filter(c => c.status === 'Failed' || c.status === 'Error').length
-            };
+        async function loadDashboard() {
+            try {
+                // Fetch submitted requests to calculate stats
+                const response = await fetch('/api/requests/submitted');
+                if (!response.ok) throw new Error('Failed to fetch requests');
+                
+                const data = await response.json();
+                const items = data.items || [];
+                
+                const stats = {
+                    total: items.length,
+                    completed: items.filter(c => c.status === 'completed').length,
+                    processing: items.filter(c => c.status === 'processing').length,
+                    failed: items.filter(c => c.status === 'failed').length
+                };
 
-            document.getElementById('totalRequests').textContent = stats.total;
-            document.getElementById('completedRequests').textContent = stats.completed;
-            document.getElementById('processingRequests').textContent = stats.processing;
-            document.getElementById('failedRequests').textContent = stats.failed;
+                document.getElementById('totalRequests').textContent = stats.total;
+                document.getElementById('completedRequests').textContent = stats.completed;
+                document.getElementById('processingRequests').textContent = stats.processing;
+                document.getElementById('failedRequests').textContent = stats.failed;
 
-            const recentTable = document.getElementById('recentRequests');
-            if (liveData.submittedRequests.length > 0) {
-                recentTable.innerHTML = liveData.submittedRequests.slice(0, 5).map(req => `
-                    <tr>
-                        <td>${req.input}</td>
-                        <td><span class="status-badge ${req.status.toLowerCase()}">${req.status.toUpperCase()}</span></td>
-                        <td>${req.created}</td>
-                        <td>${liveData.workflows.find(w => w.id === req.workflowId)?.fields['Workflow Name'] || 'N/A'}</td>
-                        <td>-</td>
-                        <td><button class="button button.small" onclick="viewRequest('${req.recordId}')">View</button></td>
-                    </tr>
-                `).join('');
+                const recentTable = document.getElementById('recentRequests');
+                if (items.length > 0) {
+                    recentTable.innerHTML = items.slice(0, 5).map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td><span class="status-badge ${item.status}">${item.status.toUpperCase()}</span></td>
+                            <td>${item.createdTime ? new Date(item.createdTime).toLocaleString() : 'Unknown'}</td>
+                            <td>${item.workflow}</td>
+                            <td>-</td>
+                            <td>${item.outputRecordId ? `<a href="#" onclick="viewArticle('${item.outputRecordId}'); return false;">View</a>` : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                // Set default values on error
+                document.getElementById('totalRequests').textContent = '0';
+                document.getElementById('completedRequests').textContent = '0';
+                document.getElementById('processingRequests').textContent = '0';
+                document.getElementById('failedRequests').textContent = '0';
             }
         }
 
@@ -642,26 +668,52 @@
             }
         }
 
-        function loadContentHub() {
+        async function loadContentHub() {
             const grid = document.getElementById('contentHubGrid');
             const empty = document.getElementById('contentHubEmpty');
             
-            const data = liveData.contentTypes.length > 0 ? liveData.contentTypes : liveData.mockData.contentTypes;
+            try {
+                // Fetch published articles from new API endpoint
+                const response = await fetch('/api/content-hub/articles');
+                if (!response.ok) throw new Error('Failed to fetch articles');
+                
+                const data = await response.json();
+                const items = data.items || [];
 
-            if (data.length > 0) {
-                grid.innerHTML = data.map(ct => `
-                    <div class="item-card">
-                        <h3>🎯 ${ct.fields['Content Type Name'] || ct.id}</h3>
-                        <p>${ct.fields['Summary'] || 'No summary'}</p>
-                        <span class="badge">${ct.fields['Strategy'] || 'Uncategorized'}</span>
-                        <span class="badge">${ct.fields['Output Medium Type'] || ''}</span>
-                        <br><br>
-                        <small><strong>Schema:</strong> ${ct.fields['Schema'] || 'Unknown'}</small>
-                    </div>
-                `).join('');
-                empty.style.display = 'none';
-            } else {
-                empty.style.display = 'block';
+                if (items.length > 0) {
+                    grid.innerHTML = items.map(article => `
+                        <div style="border:1px solid #ddd; border-radius:0.5rem; overflow:hidden; cursor:pointer;" onclick="viewArticle('${article.id}')">
+                            ${article.cardImage ? 
+                                `<img src="${article.cardImage}" alt="${article.title}" style="width:100%; height:200px; object-fit:cover;">` :
+                                '<div style="width:100%; height:200px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af;">No Image</div>'
+                            }
+                            <div style="padding:1rem;">
+                                <div style="font-size:0.75rem; color:#6b7280; margin-bottom:0.5rem;">
+                                    ${article.articleType} • ${article.brand}
+                                </div>
+                                <h3 style="margin:0 0 0.5rem 0; font-size:1.125rem;">${article.title}</h3>
+                                <p style="margin:0; color:#6b7280; font-size:0.875rem; line-height:1.5;">
+                                    ${article.cardText || article.subtitle || ''}
+                                </p>
+                                <div style="margin-top:1rem; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#9ca3af;">
+                                    <span>${article.readTime || 'Quick read'}</span>
+                                    <span style="padding:0.25rem 0.5rem; border-radius:0.25rem; background:#f3f4f6;">
+                                        ${article.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    empty.style.display = 'none';
+                } else {
+                    empty.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading Content Hub:', error);
+                if (empty) {
+                    empty.textContent = 'Error loading articles. Please try again.';
+                    empty.style.display = 'block';
+                }
             }
         }
 
@@ -755,24 +807,71 @@
         async function loadTracker() {
             const tableBody = document.getElementById('trackerTableBody');
             
-            if (liveData.submittedRequests.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6">No requests submitted yet. Use the "New Request" page to start a workflow.</td></tr>';
-                return;
-            }
+            try {
+                // Fetch submitted requests from new API endpoint
+                const response = await fetch('/api/requests/submitted');
+                if (!response.ok) throw new Error('Failed to fetch requests');
+                
+                const data = await response.json();
+                const items = data.items || [];
+                
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6">No requests submitted yet. Use the "New Request" page to start a workflow.</td></tr>';
+                    return;
+                }
 
-            tableBody.innerHTML = liveData.submittedRequests.map(req => {
-                const workflow = liveData.workflows.find(w => w.id === req.workflowId);
-                return `
-                    <tr>
-                        <td>${req.input}</td>
-                        <td><span class="status-badge ${req.status.toLowerCase()}">${req.status.toUpperCase()}</span></td>
-                        <td>${req.created}</td>
-                        <td>${workflow ? workflow.fields['Workflow Name'] : 'N/A'}</td>
-                        <td>${req.lastChecked || 'N/A'}</td>
-                        <td><button class="button button.small" onclick="viewRequest('${req.recordId}')">View</button></td>
-                    </tr>
-                `;
-            }).join('');
+                tableBody.innerHTML = items.map(item => {
+                    const statusColors = {
+                        completed: '#10b981',
+                        processing: '#3b82f6',
+                        queued: '#6b7280',
+                        failed: '#ef4444'
+                    };
+                    const statusColor = statusColors[item.status] || '#6b7280';
+                    const createdDate = item.createdTime ? new Date(item.createdTime).toLocaleString() : 'Unknown';
+                    
+                    return `
+                        <tr style="border-bottom:1px solid #eee;">
+                            <td style="padding:0.75rem;">${item.name}</td>
+                            <td style="padding:0.75rem;">
+                                <span style="display:inline-block; padding:0.25rem 0.75rem; border-radius:1rem; background:${statusColor}; color:white; font-size:0.875rem;">
+                                    ${item.status}
+                                </span>
+                            </td>
+                            <td style="padding:0.75rem;">${item.workflow}</td>
+                            <td style="padding:0.75rem;">${createdDate}</td>
+                            <td style="padding:0.75rem;">
+                                ${item.outputRecordId ? 
+                                  `<a href="#" onclick="viewArticle('${item.outputRecordId}'); return false;" style="color:#3b82f6;">View Output</a>` :
+                                  '<span style="color:#999;">In Progress</span>'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading tracker:', error);
+                tableBody.innerHTML = '<tr><td colspan="6">Error loading requests. Please try again.</td></tr>';
+            }
+        }
+
+        async function viewArticle(articleId) {
+            try {
+                const response = await fetch(`/api/content-hub/article/${articleId}`);
+                if (!response.ok) throw new Error('Article not found');
+                
+                const article = await response.json();
+                
+                // For now, just show an alert with article details
+                // TODO: Create a proper article detail view
+                alert(`Article: ${article.title}\n\nStatus: ${article.status}\nBrand: ${article.brand}\nType: ${article.articleType}\n\nClick OK to continue.`);
+                
+                // Future: Navigate to article detail page or open modal
+                console.log('Full article data:', article);
+            } catch (error) {
+                console.error('Error viewing article:', error);
+                alert('Failed to load article details.');
+            }
         }
 
         function toggleCollapsible(element) {
