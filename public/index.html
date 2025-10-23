@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Knowledge Base</title>
+    <style>
+        /* ... (CSS styles remain the same) ... */
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="#" class="navbar-brand">📚 Knowledge Base</a>
+            <ul class="navbar-menu">
+                <li><a href="#" data-page="dashboard" class="nav-link active">Dashboard</a></li>
+                <li><a href="#" data-page="prompts" class="nav-link">Prompts</a></li>
+                <li><a href="#" data-page="workflows" class="nav-link">Workflows</a></li>
+                <li><a href="#" data-page="entities" class="nav-link">Entities</a></li>
+                <li><a href="#" data-page="tools" class="nav-link">Tools</a></li>
+                <li><a href="#" data-page="references" class="nav-link">References</a></li>
+                <li><a href="#" data-page="content-hub" class="nav-link">Content Hub</a></li>
+                <li><a href="#" data-page="new-request" class="nav-link">New Request</a></li>
+                <li><a href="#" data-page="tracker" class="nav-link">Tracker</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <!-- ... (Dashboard HTML remains the same) ... -->
+        </div>
+        
+        <!-- Prompts Page -->
+        <div id="prompts" class="page">
+            <!-- ... (Prompts HTML remains the same) ... -->
+        </div>
+
+        <!-- Workflows Page -->
+        <div id="workflows" class="page">
+            <!-- ... (Workflows HTML remains the same) ... -->
+        </div>
+
+        <!-- Entities Page -->
+        <div id="entities" class="page">
+            <!-- ... (Entities HTML remains the same) ... -->
+        </div>
+        
+        <!-- Tools Page - NEW -->
+        <div id="tools" class="page">
+            <h2>🛠️ Tools Library</h2>
+            <div id="toolsGrid" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="toolsEmpty" style="display: none;">No tools found in the library.</p>
+        </div>
+
+        <!-- References Page - NEW -->
+        <div id="references" class="page">
+            <h2>🔗 References Library</h2>
+            <div id="referencesGrid" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="referencesEmpty" style="display: none;">No references found in the library.</p>
+        </div>
+
+        <!-- Content Hub Page -->
+        <div id="content-hub" class="page">
+            <!-- ... (Content Hub HTML remains the same) ... -->
+        </div>
+
+        <!-- New Request Page -->
+        <div id="new-request" class="page">
+            <!-- ... (New Request HTML remains the same) ... -->
+        </div>
+        
+        <!-- Request Tracker Page -->
+        <div id="tracker" class="page">
+            <!-- ... (Tracker HTML remains the same) ... -->
+        </div>
+
+    </div>
+
+    <script>
+        // Global variable to hold live data
+        let liveData = {
+            prompts: [],
+            workflows: [],
+            entities: [],
+            tools: [], // NEW
+            references: [], // NEW
+            contentInitiators: [], // Live requests for tracker
+            contentTypes: [],
+            formSchema: [],
+            // Mock data for initial load until live data is fetched
+            mockData: {
+                prompts: [{ id: 'm1', name: 'Loading...', description: 'Fetching live data...' }],
+                workflows: [{ id: 'm1', name: 'Loading...', description: 'Fetching live data...' }],
+                entities: [{ id: 'm1', name: 'Loading...', description: 'Fetching live data...' }],
+                tools: [{ id: 'm1', name: 'Loading...', description: 'Fetching live data...' }], // NEW
+                references: [{ id: 'm1', name: 'Loading...', description: 'Fetching live data...' }], // NEW
+                contentInitiators: [],
+                contentTypes: []
+            },
+            // New: Store IDs of submitted requests for tracking
+            submittedRequests: JSON.parse(localStorage.getItem('submittedRequests')) || []
+        };
+        
+        const TRACKER_POLL_INTERVAL = 5000; // Poll every 5 seconds
+
+        // --- Core Functions ---
+
+        async function fetchLiveData() {
+            try {
+                const response = await fetch('/api/data/live');
+                if (!response.ok) throw new Error('Failed to fetch live data from server.');
+                const data = await response.json();
+                
+                liveData.prompts = data.prompts;
+                liveData.workflows = data.workflows;
+                liveData.entities = data.entities;
+                liveData.tools = data.tools; // NEW
+                liveData.references = data.references; // NEW
+                liveData.contentTypes = data.contentTypes;
+                
+                // Fetch the form schema (still static for now, but will be replaced by live fetch)
+                const schemaResponse = await fetch('/api/data/form-schema');
+                if (schemaResponse.ok) {
+                    liveData.formSchema = await schemaResponse.json();
+                }
+
+                // Initial load of pages that depend on data
+                loadDashboard();
+                loadPrompts();
+                loadWorkflows();
+                loadEntities();
+                loadTools(); // NEW
+                loadReferences(); // NEW
+                loadContentHub();
+                loadNewRequestForm();
+                loadTracker();
+                
+                // Start the tracking poll
+                startTrackingPoll();
+                
+            } catch (error) {
+                console.error('Error fetching live data:', error);
+                // Fallback to mock data if live fetch fails
+                loadDashboard();
+                loadPrompts();
+                loadWorkflows();
+                loadEntities();
+                loadTools(); // NEW
+                loadReferences(); // NEW
+                loadContentHub();
+                loadNewRequestForm();
+                loadTracker();
+            }
+        }
+        
+        function startTrackingPoll() {
+            // Only start polling if there are requests to track
+            if (liveData.submittedRequests.length > 0) {
+                setInterval(updateTrackerStatus, TRACKER_POLL_INTERVAL);
+            }
+        }
+
+        async function updateTrackerStatus() {
+            const updates = await Promise.all(liveData.submittedRequests.map(async (req) => {
+                try {
+                    const response = await fetch(`/api/requests/status/${req.recordId}`);
+                    if (!response.ok) throw new Error('Failed to fetch status');
+                    const data = await response.json();
+                    return { ...req, status: data.status, lastChecked: new Date().toLocaleTimeString() };
+                } catch (error) {
+                    // Assume 'Queued' if there's an error, or 'Error' if it's a persistent issue
+                    return { ...req, status: req.status === 'Queued' ? 'Queued' : 'Error', lastChecked: new Date().toLocaleTimeString() };
+                }
+            }));
+            
+            // Update the global list and local storage
+            liveData.submittedRequests = updates;
+            localStorage.setItem('submittedRequests', JSON.stringify(updates));
+            
+            // If the user is on the tracker page, reload it
+            if (document.getElementById('tracker').classList.contains('active')) {
+                loadTracker();
+            }
+        }
+
+        // --- Navigation and Page Loading ---
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageName = link.dataset.page;
+                
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                // Show active page
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(pageName).classList.add('active');
+                
+                // Load page data
+                loadPageData(pageName);
+            });
+        });
+
+        function loadPageData(pageName) {
+            switch(pageName) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'prompts':
+                    loadPrompts();
+                    break;
+                case 'workflows':
+                    loadWorkflows();
+                    break;
+                case 'entities':
+                    loadEntities();
+                    break;
+                case 'tools': // NEW
+                    loadTools();
+                    break;
+                case 'references': // NEW
+                    loadReferences();
+                    break;
+                case 'content-hub':
+                    loadContentHub();
+                    break;
+                case 'new-request':
+                    loadNewRequestForm();
+                    break;
+                case 'tracker':
+                    loadTracker();
+                    break;
+            }
+        }
+        
+        // --- Page Logic Functions (Updated to use liveData) ---
+
+        function loadDashboard() {
+            const stats = {
+                total: liveData.submittedRequests.length,
+                completed: liveData.submittedRequests.filter(c => c.status === 'Complete').length,
+                processing: liveData.submittedRequests.filter(c => c.status === 'Processing').length,
+                failed: liveData.submittedRequests.filter(c => c.status === 'Failed' || c.status === 'Error').length
+            };
+
+            document.getElementById('totalRequests').textContent = stats.total;
+            document.getElementById('completedRequests').textContent = stats.completed;
+            document.getElementById('processingRequests').textContent = stats.processing;
+            document.getElementById('failedRequests').textContent = stats.failed;
+
+            const recentTable = document.getElementById('recentRequests');
+            if (liveData.submittedRequests.length > 0) {
+                recentTable.innerHTML = liveData.submittedRequests.slice(0, 5).map(req => `
+                    <tr>
+                        <td>${req.input}</td>
+                        <td><span class="status-badge ${req.status.toLowerCase()}">${req.status.toUpperCase()}</span></td>
+                        <td>${req.created}</td>
+                        <td>${liveData.workflows.find(w => w.id === req.workflowId)?.fields['Workflow Name'] || 'N/A'}</td>
+                        <td>-</td>
+                        <td><button class="button button.small" onclick="viewRequest('${req.recordId}')">View</button></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function loadPrompts() {
+            const container = document.getElementById('promptsContainer');
+            const empty = document.getElementById('promptsEmpty');
+            
+            const data = liveData.prompts.length > 0 ? liveData.prompts : liveData.mockData.prompts;
+
+            if (data.length > 0) {
+                container.innerHTML = data.map(prompt => `
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3>${prompt.fields['Prompt Name'] || prompt.id}</h3>
+                        <p>${prompt.fields['Description'] || 'No description'}</p>
+                        <span class="badge">${prompt.fields['Prompt Category'] || 'General'}</span>
+                        <span class="badge">${prompt.fields['Prompt Type'] || 'Template'}</span>
+                        <br><br>
+                        <button class="collapsible" onclick="toggleCollapsible(this)">View Prompt Text</button>
+                        <div class="content">
+                            <pre>${prompt.fields['Prompt Text'] || 'No prompt text available.'}</pre>
+                        </div>
+                        <button class="button button.small" onclick="usePrompt('${prompt.id}', '${prompt.fields['Prompt Text']}')">Use Prompt</button>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        function loadWorkflows() {
+            const grid = document.getElementById('workflowsGrid');
+            const empty = document.getElementById('workflowsEmpty');
+            
+            const data = liveData.workflows.length > 0 ? liveData.workflows : liveData.mockData.workflows;
+
+            if (data.length > 0) {
+                grid.innerHTML = data.map(workflow => `
+                    <div class="item-card">
+                        <h3>${workflow.fields['Workflow Name'] || workflow.id}</h3>
+                        <p>${workflow.fields['Description'] || 'No description'}</p>
+                        <span class="badge">${workflow.fields['Workflow Type'] || 'General'}</span>
+                        <span class="badge">${workflow.fields['Total Steps'] || 'N/A'} steps</span>
+                        <br><br>
+                        <button class="button button.small" onclick="runWorkflow('${workflow.id}')">Run Workflow</button>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        function loadEntities() {
+            const container = document.getElementById('entitiesContainer');
+            const empty = document.getElementById('entitiesEmpty');
+            
+            const data = liveData.entities.length > 0 ? liveData.entities : liveData.mockData.entities;
+
+            if (data.length > 0) {
+                container.innerHTML = data.map(entity => `
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3>${entity.fields['Entity Name'] || entity.id}</h3>
+                        <p>${entity.fields['Description'] || 'No description'}</p>
+                        <span class="badge">${entity.fields['Entity Type'] || 'General'}</span>
+                        <br><br>
+                        <button class="collapsible" onclick="toggleCollapsible(this)">View Knowledge Base XML</button>
+                        <div class="content">
+                            <pre>${entity.fields['Knowledge Base XML'] || 'No XML available.'}</pre>
+                        </div>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+        
+        // NEW: Load Tools
+        function loadTools() {
+            const grid = document.getElementById('toolsGrid');
+            const empty = document.getElementById('toolsEmpty');
+            
+            const data = liveData.tools.length > 0 ? liveData.tools : liveData.mockData.tools;
+
+            if (data.length > 0) {
+                grid.innerHTML = data.map(tool => `
+                    <div class="item-card">
+                        <h3>🛠️ ${tool.fields['Tool Name'] || tool.id}</h3>
+                        <p>${tool.fields['Description'] || 'No description'}</p>
+                        <span class="badge">${tool.fields['Category'] || 'General'}</span>
+                        <span class="badge">${tool.fields['Integration Type'] || 'API'}</span>
+                        <br><br>
+                        <button class="collapsible" onclick="toggleCollapsible(this)">View Details</button>
+                        <div class="content">
+                            <pre>${tool.fields['Usage Instructions'] || 'No instructions available.'}</pre>
+                        </div>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        // NEW: Load References
+        function loadReferences() {
+            const grid = document.getElementById('referencesGrid');
+            const empty = document.getElementById('referencesEmpty');
+            
+            const data = liveData.references.length > 0 ? liveData.references : liveData.mockData.references;
+
+            if (data.length > 0) {
+                grid.innerHTML = data.map(ref => `
+                    <div class="item-card">
+                        <h3>🔗 ${ref.fields['Reference Name'] || ref.id}</h3>
+                        <p>${ref.fields['Summary'] || 'No summary'}</p>
+                        <span class="badge">${ref.fields['Type'] || 'Document'}</span>
+                        <span class="badge">${ref.fields['Source'] || 'Internal'}</span>
+                        <br><br>
+                        <a href="${ref.fields['URL'] || '#'}" target="_blank" class="button button.small">View Source</a>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        function loadContentHub() {
+            const grid = document.getElementById('contentHubGrid');
+            const empty = document.getElementById('contentHubEmpty');
+            
+            const data = liveData.contentTypes.length > 0 ? liveData.contentTypes : liveData.mockData.contentTypes;
+
+            if (data.length > 0) {
+                grid.innerHTML = data.map(ct => `
+                    <div class="item-card">
+                        <h3>🎯 ${ct.fields['Content Type Name'] || ct.id}</h3>
+                        <p>${ct.fields['Summary'] || 'No summary'}</p>
+                        <span class="badge">${ct.fields['Strategy'] || 'Uncategorized'}</span>
+                        <span class="badge">${ct.fields['Output Medium Type'] || ''}</span>
+                        <br><br>
+                        <small><strong>Schema:</strong> ${ct.fields['Schema'] || 'Unknown'}</small>
+                    </div>
+                `).join('');
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+            }
+        }
+
+        function loadNewRequestForm() {
+            // This function will eventually generate the form dynamically from liveData.formSchema
+            // For now, it will populate the dropdowns using liveData.
+            
+            const workflowSelect = document.getElementById('workflow');
+            workflowSelect.innerHTML = '<option value="">Select a workflow...</option>' + 
+                liveData.workflows.map(w => `<option value="${w.id}">${w.fields['Workflow Name']}</option>`).join('');
+
+            const personaSelect = document.getElementById('persona');
+            // Assuming the Persona data is available in the liveData object
+            // Since we don't have a dedicated 'personas' fetch, we'll use a mock for now
+            personaSelect.innerHTML = '<option value="">Select a persona...</option>' + 
+                '<option value="recMock1">Master Persona</option><option value="recMock2">Audience Persona</option>';
+
+            const entitySelect = document.getElementById('entity');
+            entitySelect.innerHTML = '<option value="">Select an entity...</option>' + 
+                liveData.entities.map(e => `<option value="${e.id}">${e.fields['Entity Name']}</option>`).join('');
+
+            // Form submission
+            document.getElementById('newRequestForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const formData = {};
+                
+                // Simple form data collection (needs to be updated for the full dynamic schema)
+                const rawInput = form.querySelector('#rawInput').value;
+                formData['Raw User Input'] = rawInput;
+                formData['Premade AI Workflow'] = [form.querySelector('#workflow').value]; // Airtable link field format
+                formData['Persona'] = [form.querySelector('#persona').value]; // Airtable link field format
+                formData['What Entity Are We Creating Content On Behalf of?'] = [form.querySelector('#entity').value]; // Airtable link field format
+                formData['Priority'] = form.querySelector('#priority').value;
+
+                document.getElementById('submitButton').disabled = true;
+                document.getElementById('submitButton').textContent = 'Submitting...';
+                
+                try {
+                    const response = await fetch('/api/requests/new', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        document.getElementById('successMessage').textContent = `Request submitted successfully! Record ID: ${result.recordId}. Tracking started.`;
+                        document.getElementById('successMessage').style.display = 'block';
+                        document.getElementById('errorMessage').style.display = 'none';
+                        form.reset();
+                        
+                        // Add the new request to the tracker list
+                        liveData.submittedRequests.unshift({
+                            recordId: result.recordId,
+                            input: rawInput.substring(0, 50) + '...',
+                            workflowId: formData['Premade AI Workflow'][0],
+                            status: 'Queued',
+                            created: new Date().toLocaleDateString()
+                        });
+                        localStorage.setItem('submittedRequests', JSON.stringify(liveData.submittedRequests));
+                        
+                        // Start polling if not already started
+                        if (liveData.submittedRequests.length === 1) {
+                            startTrackingPoll();
+                        }
+                        
+                        // Immediately update the tracker page
+                        loadTracker();
+                        
+                    } else {
+                        throw new Error(result.error || 'Unknown error occurred.');
+                    }
+                } catch (error) {
+                    console.error('Submission Error:', error);
+                    document.getElementById('errorMessage').textContent = `Submission failed: ${error.message}`;
+                    document.getElementById('errorMessage').style.display = 'block';
+                    document.getElementById('successMessage').style.display = 'none';
+                } finally {
+                    document.getElementById('submitButton').disabled = false;
+                    document.getElementById('submitButton').textContent = 'Submit Request';
+                    setTimeout(() => {
+                        document.getElementById('successMessage').style.display = 'none';
+                        document.getElementById('errorMessage').style.display = 'none';
+                    }, 8000);
+                }
+            });
+        }
+
+        async function loadTracker() {
+            const tableBody = document.getElementById('trackerTableBody');
+            
+            if (liveData.submittedRequests.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6">No requests submitted yet. Use the "New Request" page to start a workflow.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = liveData.submittedRequests.map(req => {
+                const workflow = liveData.workflows.find(w => w.id === req.workflowId);
+                return `
+                    <tr>
+                        <td>${req.input}</td>
+                        <td><span class="status-badge ${req.status.toLowerCase()}">${req.status.toUpperCase()}</span></td>
+                        <td>${req.created}</td>
+                        <td>${workflow ? workflow.fields['Workflow Name'] : 'N/A'}</td>
+                        <td>${req.lastChecked || 'N/A'}</td>
+                        <td><button class="button button.small" onclick="viewRequest('${req.recordId}')">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function toggleCollapsible(element) {
+            element.classList.toggle('active');
+            element.nextElementSibling.classList.toggle('active');
+        }
+
+        function usePrompt(promptId, promptText) {
+            document.getElementById('rawInput').value = `${promptText}`;
+            
+            // Navigate to new-request page
+            document.querySelector('[data-page="new-request"]').click();
+        }
+
+        function runWorkflow(workflowId) {
+            const workflow = liveData.workflows.find(w => w.id === workflowId);
+            document.getElementById('workflow').value = workflowId;
+            
+            // Navigate to new-request page
+            document.querySelector('[data-page="new-request"]').click();
+        }
+
+        async function viewRequest(recordId) {
+            try {
+                const response = await fetch(`/api/requests/status/${recordId}`);
+                const data = await response.json();
+                
+                let output = 'Not available yet.';
+                if (data.outputLink) {
+                    output = `<a href="${data.outputLink}" target="_blank">View Final Output</a>`;
+                }
+
+                alert(`
+                    --- Request Details ---
+                    Record ID: ${data.recordId}
+                    Status: ${data.status}
+                    Output: ${output}
+                `);
+            } catch (error) {
+                alert(`Could not fetch details for request ${recordId}. Error: ${error.message}`);
+            }
+        }
+
+        // Load data on page load
+        window.addEventListener('load', () => {
+            fetchLiveData();
+            // Load the initial page
+            document.querySelector('[data-page="dashboard"]').click();
+        });
+    </script>
+    <script src="content-hub.js"></script>
+</body>
+</html>

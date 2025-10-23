@@ -1,0 +1,16 @@
+{
+  "name": "@agentbox/playground",
+  "version": "1.0.0",
+  "description": "AgentBox Playground - Developer UI for testing agents",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "airtable": "^0.12.2",
+    "axios": "^1.12.2",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.0"
+  }
+}
