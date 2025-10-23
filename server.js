@@ -547,7 +547,192 @@ app.post('/api/events/:recordId/lane', async (req, res) => {
     }
 });
 
-// --- Health check endpoint ---
+// --- API Endpoint to list all submitted requests (for Tracker) ---
+app.get('/api/requests/submitted', async (req, res) => {
+    try {
+        if (!airtable) {
+            return res.json({ items: [] });
+        }
+
+        const base = airtable.base(BASE_AUTOMATION_MASTERY);
+        const initiatorTable = base(TABLES.INITIATOR);
+        
+        console.log('Fetching all submitted requests...');
+        
+        // Fetch records, sorted by creation time (newest first)
+        const records = await initiatorTable.select({
+            pageSize: 50,
+            sort: [{ field: 'Created', direction: 'desc' }]
+        }).all().catch(() => {
+            // Fallback if 'Created' field doesn't exist
+            return initiatorTable.select({ pageSize: 50 }).all();
+        });
+
+        const items = records.map(record => {
+            const fields = record.fields;
+            
+            // Derive status from progress markers
+            const hasFinalOutput = fields['Final Output In Content Hub Record Id'] || 
+                                  fields['Final Output Record Id'] ||
+                                  fields['Final Output (ID)'];
+            const hasOutputs = fields['Outputs Record ID'] || 
+                              fields['Output Record ID'] ||
+                              fields['Multimedia Record Id'];
+            
+            let status = 'queued';
+            if (hasFinalOutput) {
+                status = 'completed';
+            } else if (hasOutputs) {
+                status = 'processing';
+            }
+            
+            // Get workflow name
+            const workflowName = fields['Workflow (WF) Name'] || 
+                                fields['Premade AI Workflow'] ||
+                                'Unknown Workflow';
+            
+            return {
+                id: record.id,
+                name: fields['Descriptive title'] || 
+                      fields['Article Title Once We Have It'] ||
+                      fields['Initiator id'] ||
+                      `Request ${record.id.substring(0, 8)}`,
+                workflow: Array.isArray(workflowName) ? workflowName[0] : workflowName,
+                status: status,
+                createdTime: record.createdTime || record._rawJson?.createdTime,
+                goal: fields['Whats Your Goal?'] || fields['Goal'] || '',
+                outputRecordId: hasFinalOutput || null
+            };
+        });
+
+        console.log(`Found ${items.length} submitted requests`);
+        res.json({ items });
+        
+    } catch (error) {
+        console.error('Error fetching submitted requests:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch requests',
+            message: error.message 
+        });
+    }
+});
+
+// --- API Endpoint to fetch published articles from Content Hub base ---
+app.get('/api/content-hub/articles', async (req, res) => {
+    try {
+        if (!airtable) {
+            return res.json({ items: [] });
+        }
+
+        const contentHubBaseId = BASE_CONTENT_HUB || 'appQ4aluTCMQbVpaQ';
+        const base = airtable.base(contentHubBaseId);
+        const articlesTable = base(TABLES.ARTICLES);
+        
+        console.log('Fetching published articles from Content Hub...');
+        
+        // Fetch published articles
+        const records = await articlesTable.select({
+            pageSize: 50,
+            filterByFormula: "OR({Status} = 'Published', {Status} = 'New AI Draft')",
+            sort: [{ field: 'Created Date', direction: 'desc' }]
+        }).all().catch(() => {
+            // Fallback without filter
+            return articlesTable.select({ pageSize: 50 }).all();
+        });
+
+        const items = records.map(record => {
+            const fields = record.fields;
+            
+            return {
+                id: record.id,
+                slug: fields['Slug (string)'] || fields['Slug'] || '',
+                title: fields['Title (string)'] || fields['Title'] || 'Untitled',
+                subtitle: fields['Subtitle (string)'] || fields['Subtitle'] || '',
+                status: fields['Status'] || 'Draft',
+                articleType: fields['Article Type'] || 'General',
+                brand: fields['Brand (single select option)'] || fields['Brand'] || '',
+                cardText: fields['Card Text'] || fields['Short Card Text'] || '',
+                cardImage: fields['Card Image'] ? fields['Card Image'][0]?.url : null,
+                createdDate: fields['Created Date'] || record.createdTime,
+                publishDate: fields['Publish Date'] || null,
+                readTime: fields['Read Time'] || '',
+                initiatorRecordId: fields['Initiator record id'] || null
+            };
+        });
+
+        console.log(`Found ${items.length} published articles`);
+        res.json({ items });
+        
+    } catch (error) {
+        console.error('Error fetching articles:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch articles',
+            message: error.message 
+        });
+    }
+});
+
+// --- API Endpoint to fetch single article details ---
+app.get('/api/content-hub/article/:id', async (req, res) => {
+    try {
+        if (!airtable) {
+            return res.status(404).json({ error: 'Article not found' });
+        }
+
+        const contentHubBaseId = BASE_CONTENT_HUB || 'appQ4aluTCMQbVpaQ';
+        const base = airtable.base(contentHubBaseId);
+        const articlesTable = base(TABLES.ARTICLES);
+        
+        console.log(`Fetching article: ${req.params.id}`);
+        
+        const record = await articlesTable.find(req.params.id);
+        const fields = record.fields;
+        
+        const article = {
+            id: record.id,
+            slug: fields['Slug (string)'] || fields['Slug'] || '',
+            title: fields['Title (string)'] || fields['Title'] || 'Untitled',
+            subtitle: fields['Subtitle (string)'] || fields['Subtitle'] || '',
+            status: fields['Status'] || 'Draft',
+            articleType: fields['Article Type'] || 'General',
+            brand: fields['Brand (single select option)'] || fields['Brand'] || '',
+            author: fields['Author (string)'] || fields['Author'] || '',
+            tags: fields['Tags'] || '',
+            cardText: fields['Card Text'] || '',
+            shortCardText: fields['Short Card Text'] || '',
+            cardImage: fields['Card Image'] ? fields['Card Image'][0]?.url : null,
+            introImage: fields['Intro Image'] ? fields['Intro Image'][0]?.url : null,
+            introContent: fields['Intro Content'] || '',
+            bodyContent1: fields['Body Content 1'] || '',
+            bodyContent2: fields['Body Content 2'] || '',
+            bodyContent3: fields['Body Content 3'] || '',
+            bodyImage1: fields['Body Image 1'] ? fields['Body Image 1'][0]?.url : null,
+            bodyImage2: fields['Body Image 2 '] ? fields['Body Image 2 '][0]?.url : null,
+            bodyImage3: fields['Body Image 3'] ? fields['Body Image 3'][0]?.url : null,
+            conclusion: fields['Conclusion & Key Takeaways'] || '',
+            citations: fields['Citations We Used'] || '',
+            externalLinks: fields['External links the user might find helpful'] || '',
+            aiFormattedDraft: fields['AI Formatted Draft'] || '',
+            aiHumanReadableDraft: fields['AI Human Readable Draft'] || '',
+            faq: fields['FAQ'] || '',
+            createdDate: fields['Created Date'] || record.createdTime,
+            publishDate: fields['Publish Date'] || null,
+            readTime: fields['Read Time'] || '',
+            initiatorRecordId: fields['Initiator record id'] || null
+        };
+
+        res.json(article);
+        
+    } catch (error) {
+        console.error('Error fetching article:', error);
+        res.status(404).json({ 
+            error: 'Article not found',
+            message: error.message 
+        });
+    }
+});
+
+// --- Health Check Endpoint ---
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
