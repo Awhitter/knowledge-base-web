@@ -111,7 +111,49 @@
         
         <!-- Dashboard Page -->
         <div id="dashboard" class="page active">
-            <!-- ... (Dashboard HTML remains the same) ... -->
+            <h2>📊 Dashboard</h2>
+            
+            <!-- Stats Grid -->
+            <div class="grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1.5rem 0;">
+                <div class="card" style="padding:1rem;text-align:center;">
+                    <div id="totalRequests" style="font-weight:700;font-size:2rem;color:#333;">0</div>
+                    <div style="color:#666;font-size:0.9rem;">Total Requests</div>
+                </div>
+                <div class="card" style="padding:1rem;text-align:center;">
+                    <div id="completedRequests" style="font-weight:700;font-size:2rem;color:#22c55e;">0</div>
+                    <div style="color:#666;font-size:0.9rem;">Completed</div>
+                </div>
+                <div class="card" style="padding:1rem;text-align:center;">
+                    <div id="processingRequests" style="font-weight:700;font-size:2rem;color:#3b82f6;">0</div>
+                    <div style="color:#666;font-size:0.9rem;">Processing</div>
+                </div>
+                <div class="card" style="padding:1rem;text-align:center;">
+                    <div id="failedRequests" style="font-weight:700;font-size:2rem;color:#ef4444;">0</div>
+                    <div style="color:#666;font-size:0.9rem;">Failed</div>
+                </div>
+            </div>
+            
+            <!-- Recent Requests Table -->
+            <div class="card" style="margin-top:2rem;">
+                <h3 style="margin-bottom:1rem;">Recent Requests</h3>
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f5f5f5;border-bottom:2px solid #ddd;">
+                            <th style="padding:.75rem;text-align:left;">Request</th>
+                            <th style="padding:.75rem;text-align:left;">Status</th>
+                            <th style="padding:.75rem;text-align:left;">Created</th>
+                            <th style="padding:.75rem;text-align:left;">Workflow</th>
+                            <th style="padding:.75rem;text-align:left;">Last Update</th>
+                            <th style="padding:.75rem;text-align:left;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentRequests">
+                        <tr><td colspan="6" style="padding:2rem;text-align:center;color:#999;">
+                            No requests yet. Use the "New Request" page to start a workflow.
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         
         <!-- Prompts Page -->
