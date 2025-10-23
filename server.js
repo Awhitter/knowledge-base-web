@@ -12,6 +12,9 @@ const sseEvents = require('./services/sse-events');
 // Import Schema Service
 const SchemaService = require('./services/schema-service');
 
+// Import Health Service
+const HealthService = require('./services/health-service');
+
 // Initialize Airtable Client
 const Airtable = require('airtable');
 const airtable = process.env.AIRTABLE_API_KEY ? new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }) : null;
@@ -130,6 +133,24 @@ if (process.env.AIRTABLE_API_KEY) {
     console.warn('⚠️  Schema pre-fetch failed (will fetch on demand):', err.message);
   });
 }
+
+// Initialize Health Service
+const healthService = new HealthService({
+  airtable,
+  schemaService,
+  contextAssembly: true, // Will be replaced with actual service instance
+  sseEvents,
+  makeWebhookUrl: MAKE_WEBHOOK_URL,
+  config: CONFIG,
+  bases: {
+    automation: BASE_AUTOMATION_MASTERY,
+    contentHub: BASE_CONTENT_HUB,
+    referenceLibrary: BASE_REFERENCE_LIBRARY
+  },
+  tables: TABLES
+});
+
+console.log('✅ Health Service initialized');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -946,13 +967,49 @@ app.get('/api/meta/config', (req, res) => {
     });
 });
 
-// --- Health Check Endpoint ---
-app.get('/api/health', (req, res) => {
+// ============================================================
+// HEALTH CHECK ENDPOINTS - Two-Tier Diagnostic System
+// ============================================================
+
+// Quick health check (for load balancers, uptime monitoring)
+// Cached for 30 seconds, responds in < 100ms
+app.get('/api/health', async (req, res) => {
+    try {
+        const health = await healthService.getQuickHealth();
+        const statusCode = health.status === 'healthy' ? 200 : 503;
+        res.status(statusCode).json(health);
+    } catch (error) {
+        res.status(500).json({
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Detailed health check (for debugging, admin dashboard)
+// Cached for 60 seconds, responds in < 2 seconds
+app.get('/api/health/detailed', async (req, res) => {
+    try {
+        const health = await healthService.getDetailedHealth();
+        const statusCode = health.status === 'healthy' ? 200 : 
+                          health.status === 'degraded' ? 200 : 503;
+        res.status(statusCode).json(health);
+    } catch (error) {
+        res.status(500).json({
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Clear health cache (for testing/debugging)
+app.post('/api/health/cache/clear', (req, res) => {
+    healthService.clearCache();
     res.json({
-        status: 'ok',
-        airtable: !!airtable,
-        makeWebhook: !!MAKE_WEBHOOK_URL,
-        timestamp: new Date().toISOString()
+        success: true,
+        message: 'Health cache cleared'
     });
 });
 
