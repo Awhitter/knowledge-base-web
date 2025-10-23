@@ -13,39 +13,95 @@ const sseEvents = require('./services/sse-events');
 const Airtable = require('airtable');
 const airtable = process.env.AIRTABLE_API_KEY ? new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }) : null;
 
-// Base IDs (Confirmed from deep analysis)
-const BASE_AUTOMATION_MASTERY = process.env.AIRTABLE_BASE_ID || 'appe6CB5XnPgGVQHw';
-const BASE_CONTENT_HUB = process.env.AIRTABLE_TERTIARY_BASE_ID || 'appQ4aluTCMQbVpaQ';
-const BASE_AUDIENCE_KB = process.env.AIRTABLE_SECONDARY_BASE_ID || 'appnPandXPt8iB4DT';
+// ============================================================
+// ENVIRONMENT-DRIVEN CONFIGURATION
+// ============================================================
+// All IDs loaded from environment variables (see .env.example)
+// Server will fail fast on startup if required vars are missing
 
-// Table IDs (Confirmed from deep analysis - airtable_deep_analysis.json)
+// Base IDs
+const BASE_AUTOMATION_MASTERY = process.env.AIRTABLE_BASE_ID_AUTOMATION || process.env.AIRTABLE_BASE_ID || 'appe6CB5XnPgGVQHw';
+const BASE_CONTENT_HUB = process.env.AIRTABLE_BASE_ID_CONTENT || process.env.AIRTABLE_TERTIARY_BASE_ID || 'appQ4aluTCMQbVpaQ';
+const BASE_REFERENCE_LIBRARY = process.env.AIRTABLE_BASE_ID_REFERENCE || process.env.AIRTABLE_SECONDARY_BASE_ID || 'apppcjitC32W0rAMb';
+
+// Table IDs - All loaded from environment variables
 const TABLES = {
-    // Automation Mastery Base
-    INITIATOR: 'tblBCiyCEEFJCJ1nO',           // AI Automation Initiator (58 fields)
-    WORKFLOWS: 'tblwCDWd0pm7f3OK2',           // Workflow (117 fields)
-    PROMPTS: 'tblvgWQST4Z0P88np',             // Prompts (24 fields)
-    ENTITIES: 'tbl9q3pHR5qtALyzm',            // Entities (20 fields)
-    REFERENCES: 'tblXfxCDOO4AGabsA',          // References (Sync) (19 fields)
-    TOOLS: 'tblO5ZEgmxJVI3FIR',               // Tools (Sync) (12 fields)
-    CONTENT_TYPES: 'tbl1ywo3FVRw8skix',       // Content Types Table (21 fields)
-    SEO_DATA: 'tblaGirYbZB1Uj1iO',            // SEO Data (15 fields)
-    IDEAS_PLANS: 'tblM5dc4nOO7A354P',         // Ideas and Plans (sync)
-    DOCUMENTATION: 'tblLQJSNMBVFIZVFR',       // Documentation
+    // Automation Mastery Base - Core orchestration tables
+    INITIATOR: process.env.AIRTABLE_TABLE_INITIATOR || 'tblBCiyCEEFJCJ1nO',
+    OUTPUTS: process.env.AIRTABLE_TABLE_OUTPUTS || 'tblYhaVCh9DMO9Mt8',
+    WORKFLOWS: process.env.AIRTABLE_TABLE_WORKFLOWS || 'tblwCDWd0pm7f3OK2',
     
-    // Content Hub Base
-    ARTICLES: 'tbl5rmBlJtZPXTaqK',            // Articles
-    QBANK: 'tbl02eKB6iO4jBL8I',               // Qbank Items
-    SOCIAL_MEDIA: 'tblBy3FDefmckuaho',        // Social Media
-    NEWSLETTERS: 'tbljQnDqtUThZ3jXv',         // Newsletters
-    CONCEPTS: 'tblGbQEvYqjqHKm3K',            // Concepts
-    MNEMONICS: 'tblrQZlfLgYR9P5PU',           // Mnemonics
-    RESEARCH_REPORTS: 'tblAMKqhZqLwHqKZU',    // Research Reports
+    // Configuration tables
+    ENTITIES: process.env.AIRTABLE_TABLE_ENTITIES || 'tbl9q3pHR5qtALyzm',
+    PROMPTS: process.env.AIRTABLE_TABLE_PROMPTS || 'tblvgWQST4Z0P88np',
+    PERSONA: process.env.AIRTABLE_TABLE_PERSONA || 'tblbtN4oFHF4Q8e30',
+    CONTENT_TYPES: process.env.AIRTABLE_TABLE_CONTENT_TYPES || 'tbl1ywo3FVRw8skix',
+    SEO_DATA: process.env.AIRTABLE_TABLE_SEO_DATA || 'tblaGirYbZB1Uj1iO',
     
-    // Audience Knowledgebase Base
-    AUDIENCE: 'tblEb8YJxwVBC6Vp6',            // Entities (in Audience KB base)
+    // Synced tables from other bases
+    REFERENCES: process.env.AIRTABLE_TABLE_REFERENCES_SYNC || 'tblXfxCDOO4AGabsA',
+    IDEAS_PLANS: process.env.AIRTABLE_TABLE_IDEAS_PLANS_SYNC || 'tblM5dc4nOO7A354P',
+    CONTENT_HUB_SYNC: process.env.AIRTABLE_TABLE_CONTENT_HUB_SYNC || 'tblA0i05AefC1aPAh',
+    DOCUMENTATION: process.env.AIRTABLE_TABLE_DOCUMENTATION_SYNC || 'tbl6ye6CD9O2edO2t',
+    ARTICLES_SYNC: process.env.AIRTABLE_TABLE_ARTICLES_SYNC || 'tblldKWyq3kppzUoP',
+    
+    // Content Hub Base - Final published content
+    CONTENT_MASTER_INDEX: process.env.AIRTABLE_TABLE_CONTENT_MASTER_INDEX || 'tblDtUblOw04ftTEC',
+    ARTICLES: process.env.AIRTABLE_TABLE_ARTICLES || 'tbl5rmBlJtZPXTaqK',
+    SOCIAL_MEDIA: process.env.AIRTABLE_TABLE_SOCIAL_MEDIA || 'tblBy3FDefmckuaho',
+    NEWSLETTERS: process.env.AIRTABLE_TABLE_NEWSLETTERS || 'tbljQnDqtUThZ3jXv',
+    RESEARCH_REPORTS: process.env.AIRTABLE_TABLE_RESEARCH_REPORTS || 'tblyTku0TChhhyE2n',
+    
+    // Educational content tables
+    QBANK: process.env.AIRTABLE_TABLE_QBANK || 'tblPcbkyxX6NRIu8O',
+    QBANK_ITEMS: process.env.AIRTABLE_TABLE_QBANK_ITEMS || 'tbl02eKB6iO4jBL8I',
+    CONCEPTS: process.env.AIRTABLE_TABLE_CONCEPTS || 'tblGbQEvYqjqHKm3K',
+    MNEMONICS: process.env.AIRTABLE_TABLE_MNEMONICS || 'tblrQZlfLgYR9P5PU',
+    FLIPCARDS: process.env.AIRTABLE_TABLE_FLIPCARDS || 'tblyef7zmNuy7cWMe',
+    
+    // Media & interactive tables
+    MULTIMEDIA: process.env.AIRTABLE_TABLE_MULTIMEDIA || 'tblbAFtmJKOiDWRfY',
+    INTERACTIVE: process.env.AIRTABLE_TABLE_INTERACTIVE || 'tblfuPMhd4u6xA0eH',
+    DISCUSSIONS: process.env.AIRTABLE_TABLE_DISCUSSIONS || 'tblHxJYXgVbBgkbBZ',
+    SOCIAL_MEDIA_POST_ITEMS: process.env.AIRTABLE_TABLE_SOCIAL_MEDIA_POST_ITEMS || 'tbln6jVWWGuRMb3z5',
+    
+    // Reference Library Base
+    REFERENCE_INDEX: process.env.AIRTABLE_TABLE_REFERENCE_INDEX || 'tblvlkIrIDHZRYfCe',
 };
 
-const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || 'https://hook.us1.make.com/s5hmufrf4lrbapk8qcqrmd6oio8cnmgf';
+// Make.com webhook URL
+const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || 'https://hook.us1.make.com/s5hmufrf4lrbapk8qcqrmd6oio8cnmgf';
+
+// Advanced configuration
+const CONFIG = {
+    STATUS_TIMEOUT_MINUTES: parseInt(process.env.STATUS_TIMEOUT_MINUTES) || 5,
+    SSE_TIMEOUT_SECONDS: parseInt(process.env.SSE_TIMEOUT_SECONDS) || 300,
+    POLLING_INTERVAL_SECONDS: parseInt(process.env.POLLING_INTERVAL_SECONDS) || 5,
+    ENABLE_SCHEMA_CACHE: process.env.ENABLE_SCHEMA_CACHE !== 'false',
+    SCHEMA_CACHE_TTL: parseInt(process.env.SCHEMA_CACHE_TTL) || 3600,
+    ENABLE_REQUEST_LOGGING: process.env.ENABLE_REQUEST_LOGGING !== 'false',
+    LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+};
+
+// Validate required environment variables on startup
+function validateEnvironment() {
+    const required = [
+        'AIRTABLE_API_KEY',
+    ];
+    
+    const missing = required.filter(key => !process.env[key]);
+    
+    if (missing.length > 0) {
+        console.error('❌ Missing required environment variables:');
+        missing.forEach(key => console.error(`   - ${key}`));
+        console.error('\nPlease check your .env file against .env.example');
+        process.exit(1);
+    }
+    
+    console.log('✅ Environment variables validated');
+}
+
+validateEnvironment();
 
 // Initialize Context Assembly Service with Airtable base
 if (airtable) {
