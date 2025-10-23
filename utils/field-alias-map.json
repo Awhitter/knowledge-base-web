@@ -1,0 +1,78 @@
+{
+  "workflow_link": [
+    "Premade AI Workflow (Initiator link to WF Table)",
+    "Workflow",
+    "Workflow Record Id",
+    "WF"
+  ],
+  "content_type_link": [
+    "Content Type",
+    "Content Type (from WF)",
+    "CT"
+  ],
+  "entity_link": [
+    "What Entity Are We Creating Content On Behalf of? (Initiator Table link to entities table)",
+    "Entity",
+    "Entity Record Id"
+  ],
+  "references_link": [
+    "References",
+    "Reference Links",
+    "Refs"
+  ],
+  "tools_link": [
+    "Tools",
+    "Tool Links"
+  ],
+  "goal": [
+    "Whats Your Goal?",
+    "Goal",
+    "What are you imagining? (From Initiator Table)",
+    "Brief"
+  ],
+  "audience": [
+    "Audience Name",
+    "Audience",
+    "Target Audience"
+  ],
+  "brand_kb": [
+    "📚 Brand Knowledgebase (from entities table)",
+    "Brand KB",
+    "Brand Knowledgebase"
+  ],
+  "audience_kb": [
+    "📚 Audience Knowledgebase (from entities table)",
+    "Audience KB",
+    "Audience Knowledgebase"
+  ],
+  "marketing_kb": [
+    "📚 Marketing Knowledgebase (from entities table)",
+    "Marketing KB",
+    "Marketing Knowledgebase"
+  ],
+  "branch_toggles": {
+    "A": ["WF - Branch A - on/off", "Branch A", "A"],
+    "B": ["WF - Branch B (full) - on/off", "Branch B", "B"],
+    "C": ["WF - Branch C - on/off", "Branch C", "C"],
+    "D": ["WF - Branch D - on/off", "Branch D", "D"],
+    "E": ["WF - Branch E - on/off", "Branch E", "E"],
+    "F": ["WF - Branch F - on/off", "Branch F", "F"],
+    "G": ["WF - Branch G - on/off", "Branch G", "G"],
+    "H": ["WF - Branch H -- on/off", "Branch H", "H"],
+    "I": ["WF - Branch I - on/off", "Branch I", "I"],
+    "J": ["WF - Branch J - on/off", "Branch J", "J"]
+  },
+  "lane_fields": [
+    "WF - A1.1", "WF - A2.1", "WF - A3.1", "WF - A4.1", "WF - A5.1",
+    "WF - B1.1", "WF - B2.1", "WF - B3.1", "WF - B4.1", "WF - B5.1",
+    "WF - C1.1", "WF - C2.1", "WF - C3.1", "WF - C4.1", "WF - C5.1",
+    "WF - D1.1", "WF - D2.1", "WF - D3.1", "WF - D4.1", "WF - D5.1",
+    "WF - E1.1", "WF - E2.1", "WF - E3.1", "WF - E4.1", "WF - E5.1",
+    "WF - F1.1", "WF - F2.1", "WF - F3.1", "WF - F4.1", "WF - F5.1",
+    "WF - G1.1", "WF - G2.1", "WF - G3.1", "WF - G4.1", "WF - G5.1",
+    "WF - H1.1", "WF - H2.1", "WF - H3.1", "WF - H4.1", "WF - H5.1",
+    "WF - I1.1", "WF - I2.1", "WF - I3.1", "WF - I4.1", "WF - I5.1",
+    "WF - J1.1", "WF - J2.1", "WF - J3.1", "WF - J4.1", "WF - J5.1"
+  ]
+}
+

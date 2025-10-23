@@ -6,6 +6,86 @@
     <title>Personal Knowledge Base</title>
     <style>
         /* ... (CSS styles remain the same) ... */
+        
+        /* Tracker Page Styles */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.queued {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .status-badge.processing {
+            background: #007bff;
+            color: white;
+        }
+        
+        .status-badge.complete {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-badge.failed,
+        .status-badge.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .lane-event {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .lane-event.lane_start {
+            border-left-color: #007bff;
+            background: #e7f3ff;
+        }
+        
+        .lane-event.lane_finish {
+            border-left-color: #28a745;
+            background: #e7f9e7;
+        }
+        
+        .lane-event.lane_error {
+            border-left-color: #dc3545;
+            background: #ffe7e7;
+        }
+        
+        .lane-event.publish {
+            border-left-color: #6f42c1;
+            background: #f3e7ff;
+        }
+        
+        .lane-event.done {
+            border-left-color: #28a745;
+            background: #d4edda;
+            font-weight: bold;
+        }
+        
+        .lane-event-time {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .lane-event-message {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .lane-event-details {
+            font-size: 0.875rem;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -79,7 +159,69 @@
         
         <!-- Request Tracker Page -->
         <div id="tracker" class="page">
-            <!-- ... (Tracker HTML remains the same) ... -->
+            <h2>📊 Request Tracker</h2>
+            <p>Monitor the real-time progress of your content creation workflows. Each lane represents a step in the AI pipeline.</p>
+            
+            <!-- Recent Requests Table -->
+            <div style="margin-top: 2rem;">
+                <h3>Recent Requests</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                            <th style="padding: 0.75rem; text-align: left;">Request</th>
+                            <th style="padding: 0.75rem; text-align: left;">Status</th>
+                            <th style="padding: 0.75rem; text-align: left;">Created</th>
+                            <th style="padding: 0.75rem; text-align: left;">Workflow</th>
+                            <th style="padding: 0.75rem; text-align: left;">Last Update</th>
+                            <th style="padding: 0.75rem; text-align: left;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackerTableBody">
+                        <tr><td colspan="6" style="padding: 2rem; text-align: center; color: #999;">No requests submitted yet. Use the "New Request" page to start a workflow.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Live Progress Monitor (shown when tracking a specific request) -->
+            <div id="liveProgressMonitor" style="display: none; margin-top: 3rem; padding: 2rem; background: #f9f9f9; border-radius: 8px; border: 2px solid #007bff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">🔴 Live Progress Monitor</h3>
+                    <button onclick="closeLiveMonitor()" style="padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <strong>Record ID:</strong> <span id="monitorRecordId">-</span><br>
+                    <strong>Connection Status:</strong> <span id="monitorConnectionStatus" style="color: #999;">Disconnected</span>
+                </div>
+                
+                <!-- Lane Progress Timeline -->
+                <div id="laneTimeline" style="margin-top: 2rem;">
+                    <h4>Lane Execution Timeline</h4>
+                    <div id="laneEvents" style="max-height: 400px; overflow-y: auto; background: white; padding: 1rem; border-radius: 4px; border: 1px solid #ddd;">
+                        <p style="color: #999; text-align: center;">Waiting for events...</p>
+                    </div>
+                </div>
+                
+                <!-- Summary Stats -->
+                <div id="progressStats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 2rem;">
+                    <div style="padding: 1rem; background: white; border-radius: 4px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #007bff;" id="statLanesStarted">0</div>
+                        <div style="color: #666; font-size: 0.875rem;">Lanes Started</div>
+                    </div>
+                    <div style="padding: 1rem; background: white; border-radius: 4px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #28a745;" id="statLanesCompleted">0</div>
+                        <div style="color: #666; font-size: 0.875rem;">Lanes Completed</div>
+                    </div>
+                    <div style="padding: 1rem; background: white; border-radius: 4px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #dc3545;" id="statLanesErrors">0</div>
+                        <div style="color: #666; font-size: 0.875rem;">Errors</div>
+                    </div>
+                    <div style="padding: 1rem; background: white; border-radius: 4px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #6c757d;" id="statElapsedTime">0s</div>
+                        <div style="color: #666; font-size: 0.875rem;">Elapsed Time</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -552,26 +694,7 @@
             document.querySelector('[data-page="new-request"]').click();
         }
 
-        async function viewRequest(recordId) {
-            try {
-                const response = await fetch(`/api/requests/status/${recordId}`);
-                const data = await response.json();
-                
-                let output = 'Not available yet.';
-                if (data.outputLink) {
-                    output = `<a href="${data.outputLink}" target="_blank">View Final Output</a>`;
-                }
-
-                alert(`
-                    --- Request Details ---
-                    Record ID: ${data.recordId}
-                    Status: ${data.status}
-                    Output: ${output}
-                `);
-            } catch (error) {
-                alert(`Could not fetch details for request ${recordId}. Error: ${error.message}`);
-            }
-        }
+        // viewRequest function is now in tracker-sse.js
 
         // Load data on page load
         window.addEventListener('load', () => {
@@ -581,5 +704,6 @@
         });
     </script>
     <script src="content-hub.js"></script>
+    <script src="tracker-sse.js"></script>
 </body>
 </html>

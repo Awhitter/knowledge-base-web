@@ -6,6 +6,9 @@ require('dotenv').config();
 // Import Context Assembly Service
 const { initialize: initializeContextAssembly, assembleUnifiedContext } = require('./services/context-assembly');
 
+// Import SSE Events Service
+const sseEvents = require('./services/sse-events');
+
 // Initialize Airtable Client
 const Airtable = require('airtable');
 const airtable = process.env.AIRTABLE_API_KEY ? new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }) : null;
@@ -458,6 +461,72 @@ app.get('/api/requests/recent', async (req, res) => {
     } catch (error) {
         console.error('Error fetching recent requests:', error);
         res.status(500).json({ error: 'Failed to fetch recent requests.', details: error.message });
+    }
+});
+
+// --- SSE Endpoint for Real-Time Lane Progress Tracking ---
+app.get('/api/events/:recordId', (req, res) => {
+    const { recordId } = req.params;
+    
+    console.log(`[SSE] Client connecting for record: ${recordId}`);
+    
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Register this connection
+    sseEvents.registerConnection(recordId, res);
+    
+    // Keep connection alive with periodic heartbeat
+    const heartbeat = setInterval(() => {
+        res.write(': heartbeat\n\n');
+    }, 30000); // Every 30 seconds
+    
+    // Clean up on disconnect
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        console.log(`[SSE] Connection closed for record: ${recordId}`);
+    });
+});
+
+// --- Webhook endpoint for Make.com to send lane progress events ---
+app.post('/api/events/:recordId/lane', async (req, res) => {
+    try {
+        const { recordId } = req.params;
+        const { event_type, lane, prompt, output, eval_score, error, content_type, output_id, summary } = req.body;
+        
+        console.log(`[Webhook] Received ${event_type} event for record ${recordId}, lane ${lane}`);
+        
+        // Emit the appropriate event based on event_type
+        switch (event_type) {
+            case 'lane_start':
+                sseEvents.emitLaneStart(recordId, lane, prompt);
+                break;
+            case 'lane_finish':
+                sseEvents.emitLaneFinish(recordId, lane, output, eval_score);
+                break;
+            case 'lane_error':
+                sseEvents.emitLaneError(recordId, lane, error || 'Unknown error');
+                break;
+            case 'publish':
+                sseEvents.emitPublish(recordId, content_type, output_id);
+                break;
+            case 'done':
+                sseEvents.emitDone(recordId, summary || {});
+                break;
+            case 'progress':
+                sseEvents.emitProgress(recordId, req.body.message || 'Progress update', req.body.data || {});
+                break;
+            default:
+                console.warn(`[Webhook] Unknown event type: ${event_type}`);
+        }
+        
+        res.json({ success: true, message: 'Event emitted' });
+    } catch (error) {
+        console.error('[Webhook] Error processing lane event:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

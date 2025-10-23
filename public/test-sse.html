@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Test Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            background: #f5f5f5;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            margin-right: 1rem;
+        }
+        
+        button {
+            padding: 0.5rem 1.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button.disconnect {
+            background: #dc3545;
+        }
+        
+        button.disconnect:hover {
+            background: #c82333;
+        }
+        
+        .status {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-indicator.connected {
+            background: #28a745;
+        }
+        
+        .status-indicator.disconnected {
+            background: #dc3545;
+        }
+        
+        .status-indicator.connecting {
+            background: #ffc107;
+        }
+        
+        .events {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .event {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .event.lane_start {
+            border-left-color: #007bff;
+            background: #e7f3ff;
+        }
+        
+        .event.lane_finish {
+            border-left-color: #28a745;
+            background: #e7f9e7;
+        }
+        
+        .event.lane_error {
+            border-left-color: #dc3545;
+            background: #ffe7e7;
+        }
+        
+        .event.publish {
+            border-left-color: #6f42c1;
+            background: #f3e7ff;
+        }
+        
+        .event.done {
+            border-left-color: #28a745;
+            background: #d4edda;
+            font-weight: bold;
+        }
+        
+        .event-time {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .event-type {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .event-data {
+            font-size: 0.875rem;
+            color: #555;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔴 SSE Test Client</h1>
+    
+    <div class="controls">
+        <input type="text" id="recordId" placeholder="Enter Record ID" value="rec_test_">
+        <button onclick="connect()">Connect</button>
+        <button class="disconnect" onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div class="status">
+        <span class="status-indicator disconnected" id="statusIndicator"></span>
+        <strong>Status:</strong> <span id="statusText">Disconnected</span>
+        <span style="margin-left: 2rem;"><strong>Record ID:</strong> <span id="currentRecordId">-</span></span>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value" id="eventCount">0</div>
+            <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="lanesStarted">0</div>
+            <div class="stat-label">Lanes Started</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="lanesCompleted">0</div>
+            <div class="stat-label">Lanes Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="errors">0</div>
+            <div class="stat-label">Errors</div>
+        </div>
+    </div>
+    
+    <div class="events">
+        <h3>Event Stream</h3>
+        <div id="eventList">
+            <p style="color: #999; text-align: center;">Not connected. Enter a Record ID and click Connect.</p>
+        </div>
+    </div>
+    
+    <script>
+        let eventSource = null;
+        let stats = {
+            eventCount: 0,
+            lanesStarted: 0,
+            lanesCompleted: 0,
+            errors: 0
+        };
+        
+        function connect() {
+            const recordId = document.getElementById('recordId').value.trim();
+            
+            if (!recordId) {
+                alert('Please enter a Record ID');
+                return;
+            }
+            
+            // Close existing connection
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            // Reset stats
+            stats = {
+                eventCount: 0,
+                lanesStarted: 0,
+                lanesCompleted: 0,
+                errors: 0
+            };
+            updateStats();
+            
+            // Clear events
+            document.getElementById('eventList').innerHTML = '<p style="color: #999; text-align: center;">Waiting for events...</p>';
+            
+            // Update UI
+            document.getElementById('currentRecordId').textContent = recordId;
+            setStatus('connecting', 'Connecting...');
+            
+            // Create EventSource
+            eventSource = new EventSource(`/api/events/${recordId}`);
+            
+            eventSource.addEventListener('open', () => {
+                console.log('SSE connection opened');
+                setStatus('connected', 'Connected');
+            });
+            
+            eventSource.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                } catch (error) {
+                    console.error('Error parsing event:', error);
+                }
+            });
+            
+            eventSource.addEventListener('error', (error) => {
+                console.error('SSE error:', error);
+                setStatus('disconnected', 'Connection Error');
+            });
+        }
+        
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            setStatus('disconnected', 'Disconnected');
+            document.getElementById('currentRecordId').textContent = '-';
+        }
+        
+        function setStatus(state, text) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = `status-indicator ${state}`;
+            document.getElementById('statusText').textContent = text;
+        }
+        
+        function handleEvent(data) {
+            console.log('Received event:', data);
+            
+            stats.eventCount++;
+            
+            // Update stats based on event type
+            if (data.type === 'lane_start') {
+                stats.lanesStarted++;
+            } else if (data.type === 'lane_finish') {
+                stats.lanesCompleted++;
+            } else if (data.type === 'lane_error') {
+                stats.errors++;
+            }
+            
+            updateStats();
+            
+            // Add event to list
+            const eventList = document.getElementById('eventList');
+            
+            // Remove placeholder
+            if (eventList.querySelector('p')) {
+                eventList.innerHTML = '';
+            }
+            
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event ${data.type}`;
+            
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            
+            eventDiv.innerHTML = `
+                <div class="event-time">${time}</div>
+                <div class="event-type">${data.type}</div>
+                <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+            `;
+            
+            // Add to top of list
+            eventList.insertBefore(eventDiv, eventList.firstChild);
+        }
+        
+        function updateStats() {
+            document.getElementById('eventCount').textContent = stats.eventCount;
+            document.getElementById('lanesStarted').textContent = stats.lanesStarted;
+            document.getElementById('lanesCompleted').textContent = stats.lanesCompleted;
+            document.getElementById('errors').textContent = stats.errors;
+        }
+    </script>
+</body>
+</html>
+
