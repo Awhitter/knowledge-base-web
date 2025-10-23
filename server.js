@@ -9,6 +9,9 @@ const { initialize: initializeContextAssembly, assembleUnifiedContext } = requir
 // Import SSE Events Service
 const sseEvents = require('./services/sse-events');
 
+// Import Schema Service
+const SchemaService = require('./services/schema-service');
+
 // Initialize Airtable Client
 const Airtable = require('airtable');
 const airtable = process.env.AIRTABLE_API_KEY ? new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }) : null;
@@ -107,6 +110,25 @@ validateEnvironment();
 if (airtable) {
   const automationMasteryBase = airtable.base(BASE_AUTOMATION_MASTERY);
   initializeContextAssembly(automationMasteryBase);
+}
+
+// Initialize Schema Service
+const schemaService = new SchemaService(process.env.AIRTABLE_API_KEY, {
+  cacheTTL: CONFIG.SCHEMA_CACHE_TTL * 1000, // Convert seconds to milliseconds
+  enableCache: CONFIG.ENABLE_SCHEMA_CACHE
+});
+
+// Pre-fetch schemas for all bases on startup (async, non-blocking)
+if (process.env.AIRTABLE_API_KEY) {
+  schemaService.fetchMultipleSchemas([
+    BASE_AUTOMATION_MASTERY,
+    BASE_CONTENT_HUB,
+    BASE_REFERENCE_LIBRARY
+  ]).then(() => {
+    console.log('✅ Schema cache warmed up');
+  }).catch(err => {
+    console.warn('⚠️  Schema pre-fetch failed (will fetch on demand):', err.message);
+  });
 }
 
 const app = express();
@@ -786,6 +808,142 @@ app.get('/api/content-hub/article/:id', async (req, res) => {
             message: error.message 
         });
     }
+});
+
+// ============================================================
+// META API ENDPOINTS - Schema Introspection & Documentation
+// ============================================================
+
+// Get schema for all bases
+app.get('/api/meta/schema', async (req, res) => {
+    try {
+        const schemas = await schemaService.fetchMultipleSchemas([
+            BASE_AUTOMATION_MASTERY,
+            BASE_CONTENT_HUB,
+            BASE_REFERENCE_LIBRARY
+        ]);
+        
+        res.json({
+            success: true,
+            schemas,
+            cacheStats: schemaService.getCacheStats()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get schema for a specific base
+app.get('/api/meta/schema/:baseId', async (req, res) => {
+    try {
+        const { baseId } = req.params;
+        const schema = await schemaService.fetchBaseSchema(baseId);
+        
+        res.json({
+            success: true,
+            schema
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get schema for a specific table
+app.get('/api/meta/schema/:baseId/:tableName', async (req, res) => {
+    try {
+        const { baseId, tableName } = req.params;
+        const tableSchema = await schemaService.getTableSchema(baseId, tableName);
+        
+        if (!tableSchema) {
+            return res.status(404).json({
+                success: false,
+                error: `Table "${tableName}" not found in base ${baseId}`
+            });
+        }
+        
+        res.json({
+            success: true,
+            table: tableSchema
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get field map for a table (for tolerant field matching)
+app.get('/api/meta/fieldmap/:baseId/:tableName', async (req, res) => {
+    try {
+        const { baseId, tableName } = req.params;
+        const fieldMap = await schemaService.generateFieldMap(baseId, tableName);
+        
+        if (!fieldMap) {
+            return res.status(404).json({
+                success: false,
+                error: `Table "${tableName}" not found in base ${baseId}`
+            });
+        }
+        
+        res.json({
+            success: true,
+            fieldMap
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Clear schema cache
+app.post('/api/meta/cache/clear', (req, res) => {
+    const { baseId } = req.body;
+    schemaService.clearCache(baseId);
+    
+    res.json({
+        success: true,
+        message: baseId ? `Cache cleared for ${baseId}` : 'All caches cleared'
+    });
+});
+
+// Get cache statistics
+app.get('/api/meta/cache/stats', (req, res) => {
+    const stats = schemaService.getCacheStats();
+    
+    res.json({
+        success: true,
+        stats
+    });
+});
+
+// Get system configuration (non-sensitive values only)
+app.get('/api/meta/config', (req, res) => {
+    res.json({
+        success: true,
+        config: {
+            statusTimeoutMinutes: CONFIG.STATUS_TIMEOUT_MINUTES,
+            sseTimeoutSeconds: CONFIG.SSE_TIMEOUT_SECONDS,
+            pollingIntervalSeconds: CONFIG.POLLING_INTERVAL_SECONDS,
+            enableSchemaCache: CONFIG.ENABLE_SCHEMA_CACHE,
+            schemaCacheTTL: CONFIG.SCHEMA_CACHE_TTL,
+            logLevel: CONFIG.LOG_LEVEL
+        },
+        bases: {
+            automation: BASE_AUTOMATION_MASTERY,
+            contentHub: BASE_CONTENT_HUB,
+            referenceLibrary: BASE_REFERENCE_LIBRARY
+        },
+        tables: Object.keys(TABLES).length
+    });
 });
 
 // --- Health Check Endpoint ---
