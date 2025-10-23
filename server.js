@@ -61,14 +61,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Helper function to fetch all records from a table ---
-async function fetchAllRecords(baseId, tableId, viewName = 'Grid view') {
+async function fetchAllRecords(baseId, tableId, viewName = null) {
     if (!airtable) return [];
     
     return new Promise((resolve, reject) => {
         const records = [];
-        airtable.base(baseId)(tableId).select({
-            view: viewName
-        }).eachPage(function page(pageRecords, fetchNextPage) {
+        const selectOptions = viewName ? { view: viewName } : {};
+        airtable.base(baseId)(tableId).select(selectOptions).eachPage(function page(pageRecords, fetchNextPage) {
             pageRecords.forEach(record => {
                 records.push(record._rawJson);
             });
