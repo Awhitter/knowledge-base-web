@@ -158,17 +158,29 @@
         
         <!-- Prompts Page -->
         <div id="prompts" class="page">
-            <!-- ... (Prompts HTML remains the same) ... -->
+            <h2>📝 Prompts Library</h2>
+            <div id="promptsContainer" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="promptsEmpty" style="display: none;">No prompts found in the library.</p>
         </div>
 
         <!-- Workflows Page -->
         <div id="workflows" class="page">
-            <!-- ... (Workflows HTML remains the same) ... -->
+            <h2>⚙️ Workflows</h2>
+            <div id="workflowsGrid" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="workflowsEmpty" style="display: none;">No workflows found.</p>
         </div>
 
         <!-- Entities Page -->
         <div id="entities" class="page">
-            <!-- ... (Entities HTML remains the same) ... -->
+            <h2>🏛️ Entities</h2>
+            <div id="entitiesContainer" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="entitiesEmpty" style="display: none;">No entities found.</p>
         </div>
         
         <!-- Tools Page - NEW -->
@@ -191,12 +203,59 @@
 
         <!-- Content Hub Page -->
         <div id="content-hub" class="page">
-            <!-- ... (Content Hub HTML remains the same) ... -->
+            <h2>📚 Content Hub</h2>
+            <div id="contentHubGrid" class="grid-container">
+                <!-- Live data will be injected here -->
+            </div>
+            <p id="contentHubEmpty" style="display: none;">No content found in the hub.</p>
         </div>
 
         <!-- New Request Page -->
         <div id="new-request" class="page">
-            <!-- ... (New Request HTML remains the same) ... -->
+            <h2>✨ New Request</h2>
+            <div class="card" style="max-width: 800px; margin: 0 auto;">
+                <form id="newRequestForm">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="workflow" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Workflow</label>
+                        <select id="workflow" name="workflow" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Select a workflow...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="entity" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Entity (Optional)</label>
+                        <select id="entity" name="entity" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Select an entity...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="persona" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Persona (Optional)</label>
+                        <select id="persona" name="persona" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Select a persona...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="rawInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Input / Instructions</label>
+                        <textarea id="rawInput" name="rawInput" rows="6" required 
+                                  style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                  placeholder="Enter your request or instructions here..."></textarea>
+                    </div>
+                    
+                    <button id="submitButton" type="submit" class="button" style="width: 100%;">
+                        Submit Request
+                    </button>
+                    
+                    <div id="successMessage" style="display: none; margin-top: 1rem; padding: 1rem; background: #d1fae5; border: 1px solid #10b981; border-radius: 4px; color: #065f46;">
+                        Request submitted successfully!
+                    </div>
+                    
+                    <div id="errorMessage" style="display: none; margin-top: 1rem; padding: 1rem; background: #fee2e2; border: 1px solid #ef4444; border-radius: 4px; color: #991b1b;">
+                        Error submitting request. Please try again.
+                    </div>
+                </form>
+            </div>
         </div>
         
         <!-- Request Tracker Page -->
