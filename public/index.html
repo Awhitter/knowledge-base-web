@@ -260,6 +260,116 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-container {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        /* Article Modal */
+        .article-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .article-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 800px;
+            max-width: 90vw;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .article-modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .article-modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .article-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .article-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+        
+        .article-meta-item {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .article-meta-item strong {
+            color: #333;
+        }
+        
+        .article-content {
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        /* Form Validation */
+        .form-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        
+        .form-error.show {
+            display: block;
+        }
+        
+        input.error, select.error, textarea.error {
+            border-color: #dc3545 !important;
+        }
     </style>
 </head>
 <body>
@@ -673,6 +783,12 @@
         // --- Page Logic Functions (Updated to use liveData) ---
 
         async function loadDashboard() {
+            // Show loading state
+            const recentTable = document.getElementById('recentRequests');
+            if (recentTable) {
+                recentTable.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div class="loading-spinner"></div></td></tr>';
+            }
+            
             try {
                 // Fetch submitted requests to calculate stats
                 const response = await fetch('/api/requests/submitted');
@@ -846,6 +962,10 @@
             const grid = document.getElementById('contentHubGrid');
             const empty = document.getElementById('contentHubEmpty');
             
+            // Show loading state
+            grid.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>Loading articles...</p></div>';
+            empty.style.display = 'none';
+            
             try {
                 // Fetch published articles from new API endpoint
                 const response = await fetch('/api/content-hub/articles');
@@ -930,11 +1050,48 @@
             document.getElementById('newRequestForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const form = e.target;
+                
+                // Clear previous errors
+                document.querySelectorAll('.form-error').forEach(el => el.classList.remove('show'));
+                document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+                
+                // Validate form
+                let isValid = true;
+                const workflow = form.querySelector('#workflow');
+                const entity = form.querySelector('#entity');
+                const persona = form.querySelector('#persona');
+                const rawInput = form.querySelector('#rawInput');
+                
+                if (!workflow.value) {
+                    workflow.classList.add('error');
+                    isValid = false;
+                }
+                
+                if (!entity.value) {
+                    entity.classList.add('error');
+                    isValid = false;
+                }
+                
+                if (!persona.value) {
+                    persona.classList.add('error');
+                    isValid = false;
+                }
+                
+                if (!rawInput.value.trim()) {
+                    rawInput.classList.add('error');
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    document.getElementById('errorMessage').textContent = 'Please fill in all required fields.';
+                    document.getElementById('errorMessage').style.display = 'block';
+                    return;
+                }
+                
                 const formData = {};
                 
                 // Simple form data collection (needs to be updated for the full dynamic schema)
-                const rawInput = form.querySelector('#rawInput').value;
-                formData['Raw User Input'] = rawInput;
+                formData['Raw User Input'] = rawInput.value;
                 formData['Premade AI Workflow'] = [form.querySelector('#workflow').value]; // Airtable link field format
                 formData['Persona'] = [form.querySelector('#persona').value]; // Airtable link field format
                 formData['What Entity Are We Creating Content On Behalf of?'] = [form.querySelector('#entity').value]; // Airtable link field format
@@ -995,8 +1152,15 @@
             });
         }
 
+        let trackerRefreshInterval = null;
+        
         async function loadTracker() {
             const tableBody = document.getElementById('trackerTableBody');
+            
+            // Show loading state (only on first load)
+            if (!tableBody.innerHTML || tableBody.innerHTML.includes('No requests')) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div class="loading-spinner"></div><p>Loading requests...</p></td></tr>';
+            }
             
             try {
                 // Fetch submitted requests from new API endpoint
@@ -1043,6 +1207,19 @@
             } catch (error) {
                 console.error('Error loading tracker:', error);
                 tableBody.innerHTML = '<tr><td colspan="6">Error loading requests. Please try again.</td></tr>';
+            }
+            
+            // Setup auto-refresh (30 seconds)
+            if (!trackerRefreshInterval) {
+                trackerRefreshInterval = setInterval(() => {
+                    if (document.getElementById('trackerTableBody')) {
+                        loadTracker();
+                    } else {
+                        // Clear interval if tracker is no longer visible
+                        clearInterval(trackerRefreshInterval);
+                        trackerRefreshInterval = null;
+                    }
+                }, 30000); // 30 seconds
             }
         }
 
@@ -1214,12 +1391,36 @@
                 
                 const article = await response.json();
                 
-                // For now, just show an alert with article details
-                // TODO: Create a proper article detail view
-                alert(`Article: ${article.title}\n\nStatus: ${article.status}\nBrand: ${article.brand}\nType: ${article.articleType}\n\nClick OK to continue.`);
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'article-modal';
+                modal.innerHTML = `
+                    <div class="article-modal-content">
+                        <div class="article-modal-header">
+                            <h2>${article.title || 'Article'}</h2>
+                            <button class="close-btn" onclick="this.closest('.article-modal').remove()">&times;</button>
+                        </div>
+                        <div class="article-modal-body">
+                            <div class="article-meta">
+                                ${article.status ? `<div class="article-meta-item"><strong>Status:</strong> ${article.status}</div>` : ''}
+                                ${article.brand ? `<div class="article-meta-item"><strong>Brand:</strong> ${article.brand}</div>` : ''}
+                                ${article.articleType ? `<div class="article-meta-item"><strong>Type:</strong> ${article.articleType}</div>` : ''}
+                                ${article.readTime ? `<div class="article-meta-item"><strong>Read Time:</strong> ${article.readTime}</div>` : ''}
+                                ${article.publishDate ? `<div class="article-meta-item"><strong>Published:</strong> ${article.publishDate}</div>` : ''}
+                            </div>
+                            ${article.subtitle ? `<p style="font-size: 1.1em; color: #666; margin-bottom: 20px;">${article.subtitle}</p>` : ''}
+                            ${article.cardText ? `<div class="article-content"><p>${article.cardText}</p></div>` : ''}
+                            ${article.slug ? `<p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #666;"><strong>Slug:</strong> ${article.slug}</p>` : ''}
+                        </div>
+                    </div>
+                `;
                 
-                // Future: Navigate to article detail page or open modal
-                console.log('Full article data:', article);
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.remove();
+                });
+                
+                document.body.appendChild(modal);
             } catch (error) {
                 console.error('Error viewing article:', error);
                 alert('Failed to load article details.');

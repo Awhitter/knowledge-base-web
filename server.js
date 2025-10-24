@@ -982,10 +982,10 @@ app.get('/api/meta/config', (req, res) => {
 // GET /api/lookups/workflows - Fetch all workflows for dropdown
 app.get('/api/lookups/workflows', async (req, res) => {
     try {
-        const workflows = await fetchAllRecords(TABLES.WORKFLOW);
+        const workflows = await fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.WORKFLOWS);
         res.json(workflows.map(w => ({
             id: w.id,
-            name: w.fields['Workflow Name'] || w.fields['Name'] || w.fields['name']
+            name: w.fields['Workflow Purpose'] || w.fields['Workflow_Name'] || w.fields['Workflow Name'] || w.fields['Name'] || w.fields['name']
         })).filter(w => w.name)); // Filter out records without names
     } catch (error) {
         console.error('Error fetching workflows:', error);
@@ -996,10 +996,10 @@ app.get('/api/lookups/workflows', async (req, res) => {
 // GET /api/lookups/entities - Fetch all entities for dropdown
 app.get('/api/lookups/entities', async (req, res) => {
     try {
-        const entities = await fetchAllRecords(TABLES.ENTITY);
+        const entities = await fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.ENTITIES);
         res.json(entities.map(e => ({
             id: e.id,
-            name: e.fields['Name'] || e.fields['Entity Name'] || e.fields['name']
+            name: e.fields['App'] || e.fields['Name'] || e.fields['Entity Name'] || e.fields['name']
         })).filter(e => e.name)); // Filter out records without names
     } catch (error) {
         console.error('Error fetching entities:', error);
@@ -1010,10 +1010,10 @@ app.get('/api/lookups/entities', async (req, res) => {
 // GET /api/lookups/personas - Fetch all personas for dropdown
 app.get('/api/lookups/personas', async (req, res) => {
     try {
-        const personas = await fetchAllRecords(TABLES.PERSONA);
+        const personas = await fetchAllRecords(BASE_AUTOMATION_MASTERY, TABLES.PERSONA);
         res.json(personas.map(p => ({
             id: p.id,
-            name: p.fields['Name'] || p.fields['Persona Name'] || p.fields['name']
+            name: p.fields['Persona To Embody'] || p.fields['Name'] || p.fields['Persona Name'] || p.fields['name']
         })).filter(p => p.name)); // Filter out records without names
     } catch (error) {
         console.error('Error fetching personas:', error);
