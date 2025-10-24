@@ -670,7 +670,7 @@ app.get('/api/requests/submitted', async (req, res) => {
         const items = records.map(record => {
             const fields = record.fields;
             
-            // Derive status from progress markers
+            // Derive status from progress markers with 5-minute timeout rule
             const hasFinalOutput = fields['Final Output In Content Hub Record Id'] || 
                                   fields['Final Output Record Id'] ||
                                   fields['Final Output (ID)'];
@@ -678,11 +678,19 @@ app.get('/api/requests/submitted', async (req, res) => {
                               fields['Output Record ID'] ||
                               fields['Multimedia Record Id'];
             
-            let status = 'queued';
+            // Calculate time elapsed since creation
+            const createdTime = new Date(record.createdTime || record._rawJson?.createdTime);
+            const now = new Date();
+            const minutesElapsed = (now - createdTime) / 1000 / 60;
+            
+            let status = 'pending';
             if (hasFinalOutput) {
-                status = 'completed';
+                status = 'complete';
             } else if (hasOutputs) {
                 status = 'processing';
+            } else if (minutesElapsed > 5) {
+                // No outputs after 5 minutes = failed
+                status = 'failed';
             }
             
             // Get workflow name
