@@ -717,23 +717,40 @@
             }
         }
 
-        function loadNewRequestForm() {
-            // This function will eventually generate the form dynamically from liveData.formSchema
-            // For now, it will populate the dropdowns using liveData.
-            
-            const workflowSelect = document.getElementById('workflow');
-            workflowSelect.innerHTML = '<option value="">Select a workflow...</option>' + 
-                liveData.workflows.map(w => `<option value="${w.id}">${w.fields['Workflow Name']}</option>`).join('');
-
-            const personaSelect = document.getElementById('persona');
-            // Assuming the Persona data is available in the liveData object
-            // Since we don't have a dedicated 'personas' fetch, we'll use a mock for now
-            personaSelect.innerHTML = '<option value="">Select a persona...</option>' + 
-                '<option value="recMock1">Master Persona</option><option value="recMock2">Audience Persona</option>';
-
-            const entitySelect = document.getElementById('entity');
-            entitySelect.innerHTML = '<option value="">Select an entity...</option>' + 
-                liveData.entities.map(e => `<option value="${e.id}">${e.fields['Entity Name']}</option>`).join('');
+        async function loadNewRequestForm() {
+            // Populate dropdowns from API
+            await populateDropdowns();
+            // Setup form submission handler
+            setupFormSubmission();
+        }
+        
+        async function populateDropdowns() {
+            try {
+                // Fetch workflows
+                const workflows = await fetch('/api/lookups/workflows').then(r => r.json());
+                const workflowSelect = document.getElementById('workflow');
+                workflowSelect.innerHTML = '<option value="">Select a workflow...</option>' + 
+                    workflows.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+                
+                // Fetch entities
+                const entities = await fetch('/api/lookups/entities').then(r => r.json());
+                const entitySelect = document.getElementById('entity');
+                entitySelect.innerHTML = '<option value="">Select an entity...</option>' + 
+                    entities.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                
+                // Fetch personas
+                const personas = await fetch('/api/lookups/personas').then(r => r.json());
+                const personaSelect = document.getElementById('persona');
+                personaSelect.innerHTML = '<option value="">Select a persona...</option>' + 
+                    personas.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to populate dropdowns:', error);
+                // Show error message to user
+                alert('Failed to load form options. Please refresh the page.');
+            }
+        }
+        
+        function setupFormSubmission() {
 
             // Form submission
             document.getElementById('newRequestForm').addEventListener('submit', async (e) => {
