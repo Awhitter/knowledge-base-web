@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "knowledge-base-web",
   "builds": [
     {
       "src": "server.js",
@@ -10,11 +9,10 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "server.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   }
 }
-
