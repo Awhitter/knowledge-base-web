@@ -86,6 +86,180 @@
             font-size: 0.875rem;
             color: #555;
         }
+        /* SSE Modal Styles */
+        .sse-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .sse-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 700px;
+            max-width: 90vw;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .sse-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .sse-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .sse-status {
+            padding: 16px 24px;
+            background: #f7fafc;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connecting {
+            background: #ed8936;
+        }
+        
+        .status-dot.connected {
+            background: #48bb78;
+        }
+        
+        .status-dot.error {
+            background: #f56565;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .sse-stats {
+            padding: 16px 24px;
+            display: flex;
+            gap: 24px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .sse-stats .stat {
+            font-size: 13px;
+            color: #4a5568;
+        }
+        
+        .sse-stats .stat strong {
+            color: #2d3748;
+        }
+        
+        .sse-events {
+            padding: 16px 24px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 300px;
+            max-height: 500px;
+        }
+        
+        .sse-event {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 14px;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .sse-event.connected { background: #f0fff4; border-left: 3px solid #48bb78; }
+        .sse-event.lane_start { background: #ebf8ff; border-left: 3px solid #4299e1; }
+        .sse-event.lane_finish { background: #f0fff4; border-left: 3px solid #48bb78; }
+        .sse-event.lane_error { background: #fff5f5; border-left: 3px solid #f56565; }
+        .sse-event.publish { background: #faf5ff; border-left: 3px solid #9f7aea; }
+        .sse-event.done { background: #fffff0; border-left: 3px solid #ecc94b; }
+        .sse-event.progress { background: #f7fafc; border-left: 3px solid #a0aec0; }
+        
+        .event-icon {
+            font-size: 18px;
+        }
+        
+        .event-time {
+            color: #718096;
+            font-size: 12px;
+            min-width: 80px;
+        }
+        
+        .event-type {
+            font-weight: 600;
+            color: #2d3748;
+            min-width: 100px;
+        }
+        
+        .event-message {
+            color: #4a5568;
+            flex: 1;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -869,6 +1043,167 @@
             } catch (error) {
                 console.error('Error loading tracker:', error);
                 tableBody.innerHTML = '<tr><td colspan="6">Error loading requests. Please try again.</td></tr>';
+            }
+        }
+
+        // View request with live SSE updates
+        function viewRequest(requestId) {
+            // Create SSE modal
+            const modal = document.createElement('div');
+            modal.id = 'sseModal';
+            modal.className = 'sse-modal';
+            modal.innerHTML = `
+                <div class="sse-modal-content">
+                    <div class="sse-header">
+                        <h2>🔴 Live Progress Monitor</h2>
+                        <button onclick="closeSSEModal()" class="close-btn">✕</button>
+                    </div>
+                    <div class="sse-status">
+                        <span id="sseStatusDot" class="status-dot connecting"></span>
+                        <span id="sseStatusText">Connecting to live stream...</span>
+                    </div>
+                    <div class="sse-stats">
+                        <div class="stat"><strong>Request ID:</strong> ${requestId.substring(0, 12)}...</div>
+                        <div class="stat"><strong>Events:</strong> <span id="eventCount">0</span></div>
+                        <div class="stat"><strong>Elapsed:</strong> <span id="elapsedTime">0s</span></div>
+                    </div>
+                    <div id="sseEvents" class="sse-events"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Start elapsed time counter
+            const startTime = Date.now();
+            const elapsedInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('elapsedTime').textContent = `${elapsed}s`;
+            }, 1000);
+            
+            // Try SSE connection
+            let eventSource;
+            let eventCount = 0;
+            
+            try {
+                eventSource = new EventSource(`/api/events/${requestId}`);
+                
+                eventSource.onopen = () => {
+                    document.getElementById('sseStatusDot').className = 'status-dot connected';
+                    document.getElementById('sseStatusText').textContent = '✓ Connected - Receiving live updates';
+                };
+                
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    addSSEEvent(data);
+                    eventCount++;
+                    document.getElementById('eventCount').textContent = eventCount;
+                };
+                
+                eventSource.onerror = () => {
+                    console.log('SSE connection failed, falling back to polling');
+                    document.getElementById('sseStatusDot').className = 'status-dot error';
+                    document.getElementById('sseStatusText').textContent = '⚠ Connection lost - Using polling fallback';
+                    eventSource.close();
+                    startPolling(requestId);
+                };
+                
+                // Store for cleanup
+                window.currentSSE = { eventSource, elapsedInterval };
+                
+            } catch (error) {
+                console.error('Failed to create SSE connection:', error);
+                document.getElementById('sseStatusDot').className = 'status-dot error';
+                document.getElementById('sseStatusText').textContent = '⚠ SSE not available - Using polling';
+                startPolling(requestId);
+            }
+        }
+        
+        function addSSEEvent(event) {
+            const eventsDiv = document.getElementById('sseEvents');
+            if (!eventsDiv) return;
+            
+            const eventEl = document.createElement('div');
+            eventEl.className = `sse-event ${event.type || 'info'}`;
+            
+            const time = new Date(event.timestamp || Date.now()).toLocaleTimeString();
+            const icon = getEventIcon(event.type);
+            
+            eventEl.innerHTML = `
+                <span class="event-icon">${icon}</span>
+                <span class="event-time">${time}</span>
+                <span class="event-type">${event.type || 'update'}</span>
+                <span class="event-message">${event.message || event.lane || ''}</span>
+            `;
+            
+            eventsDiv.appendChild(eventEl);
+            eventsDiv.scrollTop = eventsDiv.scrollHeight;
+        }
+        
+        function getEventIcon(type) {
+            const icons = {
+                'connected': '🔗',
+                'lane_start': '▶️',
+                'lane_finish': '✅',
+                'lane_error': '❌',
+                'publish': '📤',
+                'done': '🎉',
+                'progress': '⏳'
+            };
+            return icons[type] || '📍';
+        }
+        
+        function startPolling(requestId) {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/requests/status/${requestId}`);
+                    if (!response.ok) throw new Error('Polling failed');
+                    
+                    const status = await response.json();
+                    
+                    addSSEEvent({
+                        type: 'progress',
+                        timestamp: new Date().toISOString(),
+                        message: `Status: ${status.status}`
+                    });
+                    
+                    if (status.status === 'complete' || status.status === 'failed') {
+                        clearInterval(pollInterval);
+                        addSSEEvent({
+                            type: 'done',
+                            timestamp: new Date().toISOString(),
+                            message: `Request ${status.status}`
+                        });
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+            
+            // Store for cleanup
+            if (window.currentSSE) {
+                window.currentSSE.pollInterval = pollInterval;
+            } else {
+                window.currentSSE = { pollInterval };
+            }
+        }
+        
+        function closeSSEModal() {
+            // Cleanup
+            if (window.currentSSE) {
+                if (window.currentSSE.eventSource) {
+                    window.currentSSE.eventSource.close();
+                }
+                if (window.currentSSE.elapsedInterval) {
+                    clearInterval(window.currentSSE.elapsedInterval);
+                }
+                if (window.currentSSE.pollInterval) {
+                    clearInterval(window.currentSSE.pollInterval);
+                }
+                window.currentSSE = null;
+            }
+            
+            const modal = document.getElementById('sseModal');
+            if (modal) {
+                modal.remove();
             }
         }
 
