@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
 require('dotenv').config();
@@ -156,6 +157,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
