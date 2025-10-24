@@ -488,6 +488,51 @@
         <!-- Content Hub Page -->
         <div id="content-hub" class="page">
             <h2>📚 Content Hub</h2>
+            
+            <!-- Filtering Controls -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1rem;">🔍 Filter & Search</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Search</label>
+                        <input type="text" id="contentHubSearch" placeholder="Search articles..." 
+                               style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Brand</label>
+                        <select id="contentHubBrandFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">All Brands</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Content Type</label>
+                        <select id="contentHubTypeFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">All Types</option>
+                            <option value="Article">Article</option>
+                            <option value="Blog Post">Blog Post</option>
+                            <option value="Research Report">Research Report</option>
+                            <option value="Social Media">Social Media</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date Range</label>
+                        <select id="contentHubDateFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="all">All Time</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button id="contentHubClearFilters" class="button" style="background: #6c757d;">Clear Filters</button>
+                        <span id="contentHubResultCount" style="color: #666; font-size: 0.875rem;"></span>
+                    </div>
+                    <button id="exportContentHubBtn" class="button" style="background: #3b82f6;">📥 Export to CSV</button>
+                </div>
+            </div>
+            
             <div id="contentHubGrid" class="grid-container">
                 <!-- Live data will be injected here -->
             </div>
@@ -531,10 +576,44 @@
                     </div>
                     
                     <div style="margin-bottom: 1.5rem;">
-                        <label for="rawInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Input / Instructions</label>
+                        <label for="goal" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Goal (Optional)</label>
+                        <small style="display: block; margin-bottom: 0.5rem; color: #666;">What do you want to achieve with this request?</small>
+                        <textarea id="goal" name="goal" rows="3" 
+                                  style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                  placeholder="e.g., Create engaging content for social media campaign..."></textarea>
+                        <div style="text-align: right; font-size: 0.75rem; color: #999; margin-top: 0.25rem;">
+                            <span id="goalCharCount">0</span> characters
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="rawInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Input / Instructions <span style="color: #ef4444;">*</span></label>
+                        <small style="display: block; margin-bottom: 0.5rem; color: #666;">Provide detailed instructions or context for your request</small>
                         <textarea id="rawInput" name="rawInput" rows="6" required 
                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
                                   placeholder="Enter your request or instructions here..."></textarea>
+                        <div style="text-align: right; font-size: 0.75rem; color: #999; margin-top: 0.25rem;">
+                            <span id="rawInputCharCount">0</span> characters
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="referenceUrls" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Reference URLs (Optional)</label>
+                        <small style="display: block; margin-bottom: 0.5rem; color: #666;">Add URLs for reference materials (one per line)</small>
+                        <textarea id="referenceUrls" name="referenceUrls" rows="3" 
+                                  style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                  placeholder="https://example.com/article1\nhttps://example.com/article2"></textarea>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="notes" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Additional Notes (Optional)</label>
+                        <small style="display: block; margin-bottom: 0.5rem; color: #666;">Any other information that might be helpful</small>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                  placeholder="Add any additional notes or special requirements..."></textarea>
+                        <div style="text-align: right; font-size: 0.75rem; color: #999; margin-top: 0.25rem;">
+                            <span id="notesCharCount">0</span> characters
+                        </div>
                     </div>
                     
                     <button id="submitButton" type="submit" class="button" style="width: 100%;">
@@ -557,12 +636,62 @@
             <h2>📊 Request Tracker</h2>
             <p>Monitor the real-time progress of your content creation workflows. Each lane represents a step in the AI pipeline.</p>
             
+            <!-- Filtering Controls -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1rem;">🔍 Filter & Search</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Search</label>
+                        <input type="text" id="trackerSearch" placeholder="Search requests..." 
+                               style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Status</label>
+                        <select id="trackerStatusFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">All Statuses</option>
+                            <option value="Queued">Queued</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Complete">Complete</option>
+                            <option value="Error">Error</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Workflow</label>
+                        <select id="trackerWorkflowFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">All Workflows</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date Range</label>
+                        <select id="trackerDateFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="all">All Time</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="trackerClearFilters" class="button" style="background: #6c757d;">Clear Filters</button>
+                    <span id="trackerResultCount" style="color: #666; font-size: 0.875rem;"></span>
+                </div>
+            </div>
+            
             <!-- Recent Requests Table -->
             <div style="margin-top: 2rem;">
-                <h3>Recent Requests</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">Recent Requests</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="exportSelectedBtn" class="button" style="background: #10b981; display: none;">📥 Export Selected</button>
+                        <button id="exportAllBtn" class="button" style="background: #3b82f6;">📥 Export All</button>
+                    </div>
+                </div>
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
                         <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                            <th style="padding: 0.75rem; text-align: left; width: 40px;">
+                                <input type="checkbox" id="selectAllTracker" style="cursor: pointer;">
+                            </th>
                             <th style="padding: 0.75rem; text-align: left;">Request</th>
                             <th style="padding: 0.75rem; text-align: left;">Status</th>
                             <th style="padding: 0.75rem; text-align: left;">Created</th>
@@ -958,6 +1087,14 @@
             }
         }
 
+        let allContentHubItems = []; // Store all items for filtering
+        let contentHubFilters = {
+            search: '',
+            brand: '',
+            type: '',
+            dateRange: 'all'
+        };
+        
         async function loadContentHub() {
             const grid = document.getElementById('contentHubGrid');
             const empty = document.getElementById('contentHubEmpty');
@@ -972,36 +1109,14 @@
                 if (!response.ok) throw new Error('Failed to fetch articles');
                 
                 const data = await response.json();
-                const items = data.items || [];
-
-                if (items.length > 0) {
-                    grid.innerHTML = items.map(article => `
-                        <div style="border:1px solid #ddd; border-radius:0.5rem; overflow:hidden; cursor:pointer;" onclick="viewArticle('${article.id}')">
-                            ${article.cardImage ? 
-                                `<img src="${article.cardImage}" alt="${article.title}" style="width:100%; height:200px; object-fit:cover;">` :
-                                '<div style="width:100%; height:200px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af;">No Image</div>'
-                            }
-                            <div style="padding:1rem;">
-                                <div style="font-size:0.75rem; color:#6b7280; margin-bottom:0.5rem;">
-                                    ${article.articleType} • ${article.brand}
-                                </div>
-                                <h3 style="margin:0 0 0.5rem 0; font-size:1.125rem;">${article.title}</h3>
-                                <p style="margin:0; color:#6b7280; font-size:0.875rem; line-height:1.5;">
-                                    ${article.cardText || article.subtitle || ''}
-                                </p>
-                                <div style="margin-top:1rem; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#9ca3af;">
-                                    <span>${article.readTime || 'Quick read'}</span>
-                                    <span style="padding:0.25rem 0.5rem; border-radius:0.25rem; background:#f3f4f6;">
-                                        ${article.status}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                    empty.style.display = 'none';
-                } else {
-                    empty.style.display = 'block';
-                }
+                allContentHubItems = data.items || [];
+                
+                // Populate brand filter dropdown
+                populateContentHubBrandFilter();
+                
+                // Apply filters and render
+                applyContentHubFilters();
+                
             } catch (error) {
                 console.error('Error loading Content Hub:', error);
                 if (empty) {
@@ -1010,12 +1125,220 @@
                 }
             }
         }
+        
+        function populateContentHubBrandFilter() {
+            const brandFilter = document.getElementById('contentHubBrandFilter');
+            if (!brandFilter) return;
+            
+            // Get unique brands
+            const brands = [...new Set(allContentHubItems.map(item => item.brand).filter(Boolean))];
+            
+            brandFilter.innerHTML = '<option value="">All Brands</option>' + 
+                brands.map(b => `<option value="${b}">${b}</option>`).join('');
+        }
+        
+        function applyContentHubFilters() {
+            const grid = document.getElementById('contentHubGrid');
+            const empty = document.getElementById('contentHubEmpty');
+            if (!grid) return;
+            
+            // Filter items
+            let filteredItems = allContentHubItems.filter(item => {
+                // Search filter
+                if (contentHubFilters.search) {
+                    const searchLower = contentHubFilters.search.toLowerCase();
+                    const matchesSearch = 
+                        (item.title && item.title.toLowerCase().includes(searchLower)) ||
+                        (item.cardText && item.cardText.toLowerCase().includes(searchLower)) ||
+                        (item.subtitle && item.subtitle.toLowerCase().includes(searchLower)) ||
+                        (item.brand && item.brand.toLowerCase().includes(searchLower));
+                    if (!matchesSearch) return false;
+                }
+                
+                // Brand filter
+                if (contentHubFilters.brand && item.brand !== contentHubFilters.brand) {
+                    return false;
+                }
+                
+                // Type filter
+                if (contentHubFilters.type && item.articleType !== contentHubFilters.type) {
+                    return false;
+                }
+                
+                // Date range filter
+                if (contentHubFilters.dateRange !== 'all' && item.publishDate) {
+                    const itemDate = new Date(item.publishDate);
+                    const now = new Date();
+                    const daysAgo = parseInt(contentHubFilters.dateRange);
+                    const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+                    if (itemDate < cutoffDate) return false;
+                }
+                
+                return true;
+            });
+            
+            // Update result count
+            const resultCount = document.getElementById('contentHubResultCount');
+            if (resultCount) {
+                resultCount.textContent = `Showing ${filteredItems.length} of ${allContentHubItems.length} articles`;
+            }
+            
+            // Render filtered items
+            if (filteredItems.length === 0) {
+                empty.textContent = 'No articles match your filters.';
+                empty.style.display = 'block';
+                grid.innerHTML = '';
+                return;
+            }
+            
+            grid.innerHTML = filteredItems.map(article => `
+                <div style="border:1px solid #ddd; border-radius:0.5rem; overflow:hidden; cursor:pointer;" onclick="viewArticle('${article.id}')">
+                    ${article.cardImage ? 
+                        `<img src="${article.cardImage}" alt="${article.title}" style="width:100%; height:200px; object-fit:cover;">` :
+                        '<div style="width:100%; height:200px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af;">No Image</div>'
+                    }
+                    <div style="padding:1rem;">
+                        <div style="font-size:0.75rem; color:#6b7280; margin-bottom:0.5rem;">
+                            ${article.articleType || 'Article'} • ${article.brand || 'Unknown'}
+                        </div>
+                        <h3 style="margin:0 0 0.5rem 0; font-size:1.125rem;">${article.title}</h3>
+                        <p style="margin:0; color:#6b7280; font-size:0.875rem; line-height:1.5;">
+                            ${article.cardText || article.subtitle || ''}
+                        </p>
+                        <div style="margin-top:1rem; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#9ca3af;">
+                            <span>${article.readTime || 'Quick read'}</span>
+                            <span style="padding:0.25rem 0.5rem; border-radius:0.25rem; background:#f3f4f6;">
+                                ${article.status || 'Published'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            empty.style.display = 'none';
+        }
+        
+        // CSV export for Content Hub
+        function exportContentHubToCSV() {
+            const itemsToExport = allContentHubItems;
+            
+            if (itemsToExport.length === 0) {
+                alert('No articles to export');
+                return;
+            }
+            
+            // CSV headers
+            const headers = ['Title', 'Brand', 'Type', 'Status', 'Publish Date', 'Read Time', 'Card Text', 'Subtitle'];
+            
+            // CSV rows
+            const rows = itemsToExport.map(item => [
+                item.title || 'Untitled',
+                item.brand || 'Unknown',
+                item.articleType || 'Article',
+                item.status || 'Published',
+                item.publishDate ? new Date(item.publishDate).toLocaleDateString() : 'Unknown',
+                item.readTime || 'N/A',
+                item.cardText || '',
+                item.subtitle || ''
+            ]);
+            
+            // Create CSV content
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `content_hub_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Setup content hub filter event listeners
+        function setupContentHubFilters() {
+            const searchInput = document.getElementById('contentHubSearch');
+            const brandFilter = document.getElementById('contentHubBrandFilter');
+            const typeFilter = document.getElementById('contentHubTypeFilter');
+            const dateFilter = document.getElementById('contentHubDateFilter');
+            const clearButton = document.getElementById('contentHubClearFilters');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    contentHubFilters.search = e.target.value;
+                    applyContentHubFilters();
+                });
+            }
+            
+            if (brandFilter) {
+                brandFilter.addEventListener('change', (e) => {
+                    contentHubFilters.brand = e.target.value;
+                    applyContentHubFilters();
+                });
+            }
+            
+            if (typeFilter) {
+                typeFilter.addEventListener('change', (e) => {
+                    contentHubFilters.type = e.target.value;
+                    applyContentHubFilters();
+                });
+            }
+            
+            if (dateFilter) {
+                dateFilter.addEventListener('change', (e) => {
+                    contentHubFilters.dateRange = e.target.value;
+                    applyContentHubFilters();
+                });
+            }
+            
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    contentHubFilters = { search: '', brand: '', type: '', dateRange: 'all' };
+                    if (searchInput) searchInput.value = '';
+                    if (brandFilter) brandFilter.value = '';
+                    if (typeFilter) typeFilter.value = '';
+                    if (dateFilter) dateFilter.value = 'all';
+                    applyContentHubFilters();
+                });
+            }
+            
+            // Setup export button
+            const exportBtn = document.getElementById('exportContentHubBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportContentHubToCSV);
+            }
+        }
 
         async function loadNewRequestForm() {
             // Populate dropdowns from API
             await populateDropdowns();
             // Setup form submission handler
             setupFormSubmission();
+            // Setup character counters
+            setupCharacterCounters();
+        }
+        
+        function setupCharacterCounters() {
+            const fields = [
+                { id: 'goal', counterId: 'goalCharCount' },
+                { id: 'rawInput', counterId: 'rawInputCharCount' },
+                { id: 'notes', counterId: 'notesCharCount' }
+            ];
+            
+            fields.forEach(({ id, counterId }) => {
+                const field = document.getElementById(id);
+                const counter = document.getElementById(counterId);
+                
+                if (field && counter) {
+                    field.addEventListener('input', () => {
+                        counter.textContent = field.value.length;
+                    });
+                }
+            });
         }
         
         async function populateDropdowns() {
@@ -1153,6 +1476,13 @@
         }
 
         let trackerRefreshInterval = null;
+        let allTrackerItems = []; // Store all items for filtering
+        let trackerFilters = {
+            search: '',
+            status: '',
+            workflow: '',
+            dateRange: 'all'
+        };
         
         async function loadTracker() {
             const tableBody = document.getElementById('trackerTableBody');
@@ -1168,42 +1498,14 @@
                 if (!response.ok) throw new Error('Failed to fetch requests');
                 
                 const data = await response.json();
-                const items = data.items || [];
+                allTrackerItems = data.items || [];
                 
-                if (items.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6">No requests submitted yet. Use the "New Request" page to start a workflow.</td></tr>';
-                    return;
-                }
-
-                tableBody.innerHTML = items.map(item => {
-                    const statusColors = {
-                        completed: '#10b981',
-                        processing: '#3b82f6',
-                        queued: '#6b7280',
-                        failed: '#ef4444'
-                    };
-                    const statusColor = statusColors[item.status] || '#6b7280';
-                    const createdDate = item.createdTime ? new Date(item.createdTime).toLocaleString() : 'Unknown';
-                    
-                    return `
-                        <tr style="border-bottom:1px solid #eee;">
-                            <td style="padding:0.75rem;">${item.name}</td>
-                            <td style="padding:0.75rem;">
-                                <span style="display:inline-block; padding:0.25rem 0.75rem; border-radius:1rem; background:${statusColor}; color:white; font-size:0.875rem;">
-                                    ${item.status}
-                                </span>
-                            </td>
-                            <td style="padding:0.75rem;">${item.workflow}</td>
-                            <td style="padding:0.75rem;">${createdDate}</td>
-                            <td style="padding:0.75rem;">
-                                ${item.outputRecordId ? 
-                                  `<a href="#" onclick="viewArticle('${item.outputRecordId}'); return false;" style="color:#3b82f6;">View Output</a>` :
-                                  '<span style="color:#999;">In Progress</span>'
-                                }
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                // Populate workflow filter dropdown
+                populateTrackerWorkflowFilter();
+                
+                // Apply filters and render
+                applyTrackerFilters();
+                
             } catch (error) {
                 console.error('Error loading tracker:', error);
                 tableBody.innerHTML = '<tr><td colspan="6">Error loading requests. Please try again.</td></tr>';
@@ -1220,6 +1522,250 @@
                         trackerRefreshInterval = null;
                     }
                 }, 30000); // 30 seconds
+            }
+        }
+        
+        function populateTrackerWorkflowFilter() {
+            const workflowFilter = document.getElementById('trackerWorkflowFilter');
+            if (!workflowFilter) return;
+            
+            // Get unique workflows
+            const workflows = [...new Set(allTrackerItems.map(item => item.workflow).filter(Boolean))];
+            
+            workflowFilter.innerHTML = '<option value="">All Workflows</option>' + 
+                workflows.map(w => `<option value="${w}">${w}</option>`).join('');
+        }
+        
+        function applyTrackerFilters() {
+            const tableBody = document.getElementById('trackerTableBody');
+            if (!tableBody) return;
+            
+            // Filter items
+            let filteredItems = allTrackerItems.filter(item => {
+                // Search filter
+                if (trackerFilters.search) {
+                    const searchLower = trackerFilters.search.toLowerCase();
+                    const matchesSearch = 
+                        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+                        (item.workflow && item.workflow.toLowerCase().includes(searchLower)) ||
+                        (item.status && item.status.toLowerCase().includes(searchLower));
+                    if (!matchesSearch) return false;
+                }
+                
+                // Status filter
+                if (trackerFilters.status && item.status !== trackerFilters.status) {
+                    return false;
+                }
+                
+                // Workflow filter
+                if (trackerFilters.workflow && item.workflow !== trackerFilters.workflow) {
+                    return false;
+                }
+                
+                // Date range filter
+                if (trackerFilters.dateRange !== 'all' && item.createdTime) {
+                    const itemDate = new Date(item.createdTime);
+                    const now = new Date();
+                    const daysAgo = parseInt(trackerFilters.dateRange);
+                    const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+                    if (itemDate < cutoffDate) return false;
+                }
+                
+                return true;
+            });
+            
+            // Update result count
+            const resultCount = document.getElementById('trackerResultCount');
+            if (resultCount) {
+                resultCount.textContent = `Showing ${filteredItems.length} of ${allTrackerItems.length} requests`;
+            }
+            
+            // Render filtered items
+            if (filteredItems.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: #999;">No requests match your filters.</td></tr>';
+                return;
+            }
+            
+            tableBody.innerHTML = filteredItems.map(item => {
+                const statusColors = {
+                    completed: '#10b981',
+                    processing: '#3b82f6',
+                    queued: '#6b7280',
+                    failed: '#ef4444',
+                    'Complete': '#10b981',
+                    'In Progress': '#3b82f6',
+                    'Queued': '#6b7280',
+                    'Error': '#ef4444'
+                };
+                const statusColor = statusColors[item.status] || '#6b7280';
+                const createdDate = item.createdTime ? new Date(item.createdTime).toLocaleString() : 'Unknown';
+                const lastUpdate = item.lastModifiedTime ? new Date(item.lastModifiedTime).toLocaleString() : createdDate;
+                
+                return `
+                    <tr style="border-bottom:1px solid #eee;" data-item-id="${item.id}">
+                        <td style="padding:0.75rem;">
+                            <input type="checkbox" class="tracker-item-checkbox" data-item-id="${item.id}" style="cursor: pointer;">
+                        </td>
+                        <td style="padding:0.75rem;">${item.name || 'Untitled'}</td>
+                        <td style="padding:0.75rem;">
+                            <span style="display:inline-block; padding:0.25rem 0.75rem; border-radius:1rem; background:${statusColor}; color:white; font-size:0.875rem;">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td style="padding:0.75rem;">${createdDate}</td>
+                        <td style="padding:0.75rem;">${item.workflow || 'N/A'}</td>
+                        <td style="padding:0.75rem;">${lastUpdate}</td>
+                        <td style="padding:0.75rem;">
+                            ${item.outputRecordId ? 
+                              `<a href="#" onclick="viewArticle('${item.outputRecordId}'); return false;" style="color:#3b82f6;">View Output</a>` :
+                              '<span style="color:#999;">In Progress</span>'
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Setup checkbox listeners
+            setupTrackerCheckboxes();
+        }
+        
+        // Setup checkbox listeners for bulk operations
+        function setupTrackerCheckboxes() {
+            const selectAll = document.getElementById('selectAllTracker');
+            const checkboxes = document.querySelectorAll('.tracker-item-checkbox');
+            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+            
+            if (selectAll) {
+                selectAll.addEventListener('change', (e) => {
+                    checkboxes.forEach(cb => cb.checked = e.target.checked);
+                    updateExportButtonVisibility();
+                });
+            }
+            
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    updateExportButtonVisibility();
+                });
+            });
+            
+            updateExportButtonVisibility();
+        }
+        
+        function updateExportButtonVisibility() {
+            const checkboxes = document.querySelectorAll('.tracker-item-checkbox:checked');
+            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+            
+            if (exportSelectedBtn) {
+                exportSelectedBtn.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
+                if (checkboxes.length > 0) {
+                    exportSelectedBtn.textContent = `📥 Export Selected (${checkboxes.length})`;
+                }
+            }
+        }
+        
+        // CSV export functions
+        function exportTrackerToCSV(selectedOnly = false) {
+            let itemsToExport = allTrackerItems;
+            
+            if (selectedOnly) {
+                const selectedIds = Array.from(document.querySelectorAll('.tracker-item-checkbox:checked'))
+                    .map(cb => cb.getAttribute('data-item-id'));
+                itemsToExport = allTrackerItems.filter(item => selectedIds.includes(item.id));
+            }
+            
+            if (itemsToExport.length === 0) {
+                alert('No items to export');
+                return;
+            }
+            
+            // CSV headers
+            const headers = ['Request Name', 'Status', 'Workflow', 'Created Date', 'Last Modified', 'Output Record ID'];
+            
+            // CSV rows
+            const rows = itemsToExport.map(item => [
+                item.name || 'Untitled',
+                item.status || 'Unknown',
+                item.workflow || 'N/A',
+                item.createdTime ? new Date(item.createdTime).toLocaleString() : 'Unknown',
+                item.lastModifiedTime ? new Date(item.lastModifiedTime).toLocaleString() : 'Unknown',
+                item.outputRecordId || 'N/A'
+            ]);
+            
+            // Create CSV content
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `tracker_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Setup tracker filter event listeners
+        function setupTrackerFilters() {
+            const searchInput = document.getElementById('trackerSearch');
+            const statusFilter = document.getElementById('trackerStatusFilter');
+            const workflowFilter = document.getElementById('trackerWorkflowFilter');
+            const dateFilter = document.getElementById('trackerDateFilter');
+            const clearButton = document.getElementById('trackerClearFilters');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    trackerFilters.search = e.target.value;
+                    applyTrackerFilters();
+                });
+            }
+            
+            if (statusFilter) {
+                statusFilter.addEventListener('change', (e) => {
+                    trackerFilters.status = e.target.value;
+                    applyTrackerFilters();
+                });
+            }
+            
+            if (workflowFilter) {
+                workflowFilter.addEventListener('change', (e) => {
+                    trackerFilters.workflow = e.target.value;
+                    applyTrackerFilters();
+                });
+            }
+            
+            if (dateFilter) {
+                dateFilter.addEventListener('change', (e) => {
+                    trackerFilters.dateRange = e.target.value;
+                    applyTrackerFilters();
+                });
+            }
+            
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    trackerFilters = { search: '', status: '', workflow: '', dateRange: 'all' };
+                    if (searchInput) searchInput.value = '';
+                    if (statusFilter) statusFilter.value = '';
+                    if (workflowFilter) workflowFilter.value = '';
+                    if (dateFilter) dateFilter.value = 'all';
+                    applyTrackerFilters();
+                });
+            }
+            
+            // Setup export buttons
+            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+            const exportAllBtn = document.getElementById('exportAllBtn');
+            
+            if (exportSelectedBtn) {
+                exportSelectedBtn.addEventListener('click', () => exportTrackerToCSV(true));
+            }
+            
+            if (exportAllBtn) {
+                exportAllBtn.addEventListener('click', () => exportTrackerToCSV(false));
             }
         }
 
@@ -1452,6 +1998,9 @@
         // Load data on page load
         window.addEventListener('load', () => {
             fetchLiveData();
+            // Setup filters
+            setupTrackerFilters();
+            setupContentHubFilters();
             // Load the initial page
             document.querySelector('[data-page="dashboard"]').click();
         });
