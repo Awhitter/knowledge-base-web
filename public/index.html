@@ -387,6 +387,7 @@
                 <li><a href="#" data-page="content-hub" class="nav-link">Content Hub</a></li>
                 <li><a href="#" data-page="new-request" class="nav-link">New Request</a></li>
                 <li><a href="#" data-page="tracker" class="nav-link">Tracker</a></li>
+                <li><a href="#" data-page="analytics" class="nav-link">📊 Analytics</a></li>
             </ul>
         </div>
     </nav>
@@ -906,6 +907,11 @@
                 case 'tracker':
                     loadTracker();
                     break;
+                case 'analytics':
+                    if (window.showAnalytics) {
+                        showAnalytics();
+                    }
+                    break;
             }
         }
         
@@ -1138,22 +1144,21 @@
         }
         
         function applyContentHubFilters() {
-            const grid = document.getElementById('contentHubGrid');
-            const empty = document.getElementById('contentHubEmpty');
-            if (!grid) return;
+            const contentGrid = document.getElementById('contentGrid');
+            if (!contentGrid) return;
             
-            // Filter items
-            let filteredItems = allContentHubItems.filter(item => {
-                // Search filter
-                if (contentHubFilters.search) {
-                    const searchLower = contentHubFilters.search.toLowerCase();
-                    const matchesSearch = 
-                        (item.title && item.title.toLowerCase().includes(searchLower)) ||
-                        (item.cardText && item.cardText.toLowerCase().includes(searchLower)) ||
-                        (item.subtitle && item.subtitle.toLowerCase().includes(searchLower)) ||
-                        (item.brand && item.brand.toLowerCase().includes(searchLower));
-                    if (!matchesSearch) return false;
-                }
+            // Apply semantic search if available
+            let filteredItems = allContentItems;
+            if (contentFilters.search && window.semanticSearch) {
+                filteredItems = window.semanticSearch.search(
+                    contentFilters.search,
+                    allContentItems,
+                    ['title', 'subtitle', 'cardText', 'brand', 'contentType']
+                );
+            }
+            
+            // Apply other filters
+            filteredItems = filteredItems.filter(item => {
                 
                 // Brand filter
                 if (contentHubFilters.brand && item.brand !== contentHubFilters.brand) {
@@ -1319,6 +1324,12 @@
             // Setup form submission handler
             setupFormSubmission();
             // Setup character counters
+            
+            // Enhance form with advanced fields (Phase 4)
+            const form = document.getElementById('new-request-form');
+            if (form && window.enhanceFormWithAdvancedFields) {
+                await enhanceFormWithAdvancedFields(form);
+            }
             setupCharacterCounters();
         }
         
@@ -1540,17 +1551,18 @@
             const tableBody = document.getElementById('trackerTableBody');
             if (!tableBody) return;
             
-            // Filter items
-            let filteredItems = allTrackerItems.filter(item => {
-                // Search filter
-                if (trackerFilters.search) {
-                    const searchLower = trackerFilters.search.toLowerCase();
-                    const matchesSearch = 
-                        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-                        (item.workflow && item.workflow.toLowerCase().includes(searchLower)) ||
-                        (item.status && item.status.toLowerCase().includes(searchLower));
-                    if (!matchesSearch) return false;
-                }
+            // Apply semantic search if available
+            let filteredItems = allTrackerItems;
+            if (trackerFilters.search && window.semanticSearch) {
+                filteredItems = window.semanticSearch.search(
+                    trackerFilters.search,
+                    allTrackerItems,
+                    ['name', 'workflow', 'status', 'entity', 'persona']
+                );
+            }
+            
+            // Apply other filters
+            filteredItems = filteredItems.filter(item => {
                 
                 // Status filter
                 if (trackerFilters.status && item.status !== trackerFilters.status) {
@@ -1620,6 +1632,8 @@
                               `<a href="#" onclick="viewArticle('${item.outputRecordId}'); return false;" style="color:#3b82f6;">View Output</a>` :
                               '<span style="color:#999;">In Progress</span>'
                             }
+                            <br>
+                            <a href="#" onclick="showWorkflowDiagramById('${item.id}'); return false;" style="color:#6c757d; font-size: 0.875rem;">📊 View Progress</a>
                         </td>
                     </tr>
                 `;
@@ -1627,6 +1641,16 @@
             
             // Setup checkbox listeners
             setupTrackerCheckboxes();
+        }
+        
+        // Helper function to show workflow diagram by item ID
+        function showWorkflowDiagramById(itemId) {
+            const item = allTrackerItems.find(i => i.id === itemId);
+            if (item && window.showWorkflowDiagram) {
+                window.showWorkflowDiagram(item);
+            } else {
+                console.error('Item not found or workflow diagram not loaded:', itemId);
+            }
         }
         
         // Setup checkbox listeners for bulk operations
@@ -2012,6 +2036,12 @@
     <script src="error-recovery.js"></script>
     <script src="security.js"></script>
     <script src="monitoring.js"></script>
+    
+    <!-- Phase 4 Advanced Features -->
+    <script src="dynamic-form.js"></script>
+    <script src="analytics.js"></script>
+    <script src="workflow-diagram.js"></script>
+    <script src="semantic-search.js"></script>
     
     <script src="content-hub.js"></script>
     <script src="tracker-sse.js"></script>
