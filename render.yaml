@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: knowledge-base-web
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: AIRTABLE_API_KEY
+        sync: false
+      - key: AIRTABLE_BASE_ID_AUTOMATION
+        sync: false
+      - key: AIRTABLE_BASE_ID_CONTENT
+        sync: false
+      - key: MAKE_WEBHOOK_URL
+        sync: false
+
